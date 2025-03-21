@@ -6,6 +6,7 @@ import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
+import Image from 'next/image';
 
 const Profile = () => {
   const router = useRouter();
@@ -114,7 +115,7 @@ const Profile = () => {
     <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-900 text-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold text-center mb-6">Profile</h2>
       <div className="flex flex-col items-center">
-        <img
+        <Image
           src={photoPreview || '/default-avatar.png'}
           alt="Profile"
           className="w-32 h-32 rounded-full border border-gray-600 mb-4"

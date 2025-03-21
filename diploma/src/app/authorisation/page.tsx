@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { loginUser } from '../../../backend/pages/api/auth/login';
 import Link from 'next/link';
@@ -65,7 +65,7 @@ const AuthForm = () => {
       )}
       {!user && (
         <div className="mt-4 text-center">
-          <p className="text-sm">Don't have an account?</p>
+          <p className="text-sm">Do not have an account?</p>
           <Link href="/register">
             <button className="w-full bg-green-600 text-white p-2 rounded-lg mt-2 hover:bg-green-700">Register</button>
           </Link>

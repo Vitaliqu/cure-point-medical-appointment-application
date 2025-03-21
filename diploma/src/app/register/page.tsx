@@ -1,11 +1,11 @@
 'use client';
-
 import React, { useState } from 'react';
 import { registerUser } from '../../../backend/pages/api/auth/register';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // Make sure to import Image from 'next/image'
 
 const RegistrationForm = () => {
-  const router = useRouter(); // Initialize Next.js router
+  const router = useRouter();
   const [step, setStep] = useState<number>(1);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -57,14 +57,13 @@ const RegistrationForm = () => {
 
     const response = await registerUser({ email, password, name, surname, phone, city, photo });
 
-    // Ensure error is a string or null
     if (response.error) {
       setError(response.error || 'An unknown error occurred.');
     } else {
       setSuccess(response.success || 'Registration successful');
       setTimeout(() => {
         router.push('/authorisation'); // Redirect user to /authorisation
-      }, 2000); // Optional delay for UX
+      }, 2000);
     }
   };
 
@@ -164,9 +163,11 @@ const RegistrationForm = () => {
       {step === 4 && (
         <div className="flex flex-col items-center">
           {photoPreview ? (
-            <img
+            <Image
               src={photoPreview}
               alt="Profile Preview"
+              width={128} // specify width
+              height={128} // specify height
               className="w-32 h-32 rounded-full mb-4 border border-gray-600"
             />
           ) : (
