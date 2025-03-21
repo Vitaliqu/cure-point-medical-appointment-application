@@ -6,7 +6,7 @@ import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
-import Image from 'next/image';
+import Image from 'next/image'; // Import Image from next/image
 
 const Profile = () => {
   const router = useRouter();
@@ -118,7 +118,9 @@ const Profile = () => {
         <Image
           src={photoPreview || '/default-avatar.png'}
           alt="Profile"
-          className="w-32 h-32 rounded-full border border-gray-600 mb-4"
+          width={128}
+          height={128}
+          className="rounded-full border border-gray-600 mb-4"
         />
         {editing && <input type="file" accept="image/*" onChange={handlePhotoChange} className="mb-4 w-full text-sm" />}
       </div>
