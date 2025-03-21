@@ -1,0 +1,38 @@
+{
+  "name": "diploma",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@react-google-maps/api": "^2.20.6",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.0",
+    "cors": "^2.8.5",
+    "firebase": "^11.3.1",
+    "formidable": "^3.5.2",
+    "framer-motion": "^12.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "15.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/formidable": "^3.4.5",
+    "@types/jsonwebtoken": "^9.0.8",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.7",
+    "postcss": "^8",
+    "prettier": "3.5.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
