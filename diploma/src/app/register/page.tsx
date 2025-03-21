@@ -57,10 +57,11 @@ const RegistrationForm = () => {
 
     const response = await registerUser({ email, password, name, surname, phone, city, photo });
 
+    // Ensure error is a string or null
     if (response.error) {
-      setError(response.error);
+      setError(response.error || 'An unknown error occurred.');
     } else {
-      setSuccess(response.success);
+      setSuccess(response.success || 'Registration successful');
       setTimeout(() => {
         router.push('/authorisation'); // Redirect user to /authorisation
       }, 2000); // Optional delay for UX
