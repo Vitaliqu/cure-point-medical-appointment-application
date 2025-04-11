@@ -40,8 +40,6 @@ const UsersList: FC = () => {
         } else {
           setUsers(userList);
         }
-
-        console.log('Fetched users:', userList);
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {

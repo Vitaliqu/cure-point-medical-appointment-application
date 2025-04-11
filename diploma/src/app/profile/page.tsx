@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
-import Image from 'next/image'; // Import Image from next/image
+import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import Image from 'next/image';
+import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData'; // Import Image from next/image
 
 const Profile = () => {
   const router = useRouter();
@@ -15,11 +17,12 @@ const Profile = () => {
   const [editing, setEditing] = useState<boolean>(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
     phone: '',
-    city: '',
+    selectedAddress: { coordinates: [0, 0] as [number, number], id: '', place_name: '' },
     photoURL: '',
   });
 
@@ -32,38 +35,20 @@ const Profile = () => {
       }
 
       setUser(currentUser);
-      await fetchUserData(currentUser.uid);
+      const userData = await fetchUserData(currentUser.uid);
+
+      if (userData) {
+        setFormData(userData);
+        setPhotoPreview(userData.photoURL || null);
+      }
+
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [router]);
 
   // Fetch user data from Firestore
-  const fetchUserData = async (userId: string) => {
-    try {
-      const userRef = doc(db, 'users', userId);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        // Typecast the fetched data to the expected structure
-        const userData = userSnap.data() as {
-          name: string;
-          surname: string;
-          phone: string;
-          city: string;
-          photoURL: string;
-        };
-        setFormData(userData); // Set the state with the correct type
-        setPhotoPreview(userData.photoURL || null);
-      } else {
-        console.error('User document not found');
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,14 +155,23 @@ const Profile = () => {
 
         <div>
           <label className="block text-sm">City</label>
-          <input
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            disabled={!editing}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
-          />
+          {editing ? (
+            <PlacesAutocomplete
+              setSelectedAddress={(e) => {
+                console.log(e);
+                formData.selectedAddress = e;
+              }}
+            />
+          ) : (
+            <input
+              type="text"
+              name="city"
+              value={formData.selectedAddress.place_name}
+              onChange={handleChange}
+              disabled={true}
+              className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
+            />
+          )}
         </div>
       </div>
 
@@ -197,6 +191,12 @@ const Profile = () => {
             Edit Profile
           </button>
         )}
+        <button
+          onClick={() => router.push('/map')}
+          className="bg-green-600 hover:bg-green-700 transition p-2 rounded-lg text-white font-semibold"
+        >
+          Map
+        </button>
         <button
           onClick={() => router.push('/users')}
           className="bg-yellow-600 hover:bg-yellow-700 transition p-2 rounded-lg text-white font-semibold"

@@ -11,6 +11,8 @@ interface RegisterUserProps {
   phone: string;
   selectedAddress: { id: string; place_name: string };
   photo?: File;
+  role: 'patient' | 'doctor';
+  fields: string[] | null;
 }
 
 export const registerUser = async ({
@@ -21,6 +23,8 @@ export const registerUser = async ({
   phone,
   selectedAddress,
   photo,
+  role,
+  fields,
 }: RegisterUserProps) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -35,8 +39,9 @@ export const registerUser = async ({
       photoURL = await getDownloadURL(storageRef);
     }
 
-    // Save user data to Firestore
+    // Save user data to Firestore, including the user ID (uid)
     await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid, // Store the user ID
       email: user.email,
       createdAt: new Date(),
       emailVerified: user.emailVerified,
@@ -45,6 +50,8 @@ export const registerUser = async ({
       phone,
       selectedAddress,
       photoURL, // Save the uploaded image URL
+      role,
+      fields,
     });
 
     // Send email verification

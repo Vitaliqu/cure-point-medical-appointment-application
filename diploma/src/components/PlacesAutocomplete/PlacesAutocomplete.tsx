@@ -6,6 +6,7 @@ const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY!;
 const geocodingClient = mbxGeocoding({ accessToken: mapboxToken });
 
 interface AddressProps {
+  coordinates: [number, number];
   id: string;
   place_name: string;
 }
@@ -36,10 +37,16 @@ const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress }) => {
           })
           .send();
 
-        const results = response.body.features.map((feature: AddressProps) => ({
-          id: feature.id,
-          place_name: feature.place_name,
-        }));
+        const results = response.body.features.map((feature) => {
+          // Ensure coordinates are a tuple [longitude, latitude]
+          const coordinates = feature.geometry.coordinates as [number, number];
+
+          return {
+            coordinates: coordinates, // Tuple type for coordinates
+            id: feature.id,
+            place_name: feature.place_name,
+          };
+        });
 
         setSuggestions(results);
       } catch (error) {
