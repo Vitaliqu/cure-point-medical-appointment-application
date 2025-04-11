@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-geocoder": "^5.0.3",
+    "@mapbox/search-js-react": "^1.0.0",
     "@react-google-maps/api": "^2.20.6",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.0",
@@ -18,17 +20,24 @@
     "framer-motion": "^12.5.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.487.0",
+    "mapbox-gl-geocoder": "^2.0.1",
     "next": "15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "resolutions": {
+    "@types/react": "17.0.14",
+    "@types/react-dom": "17.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/formidable": "^3.4.5",
     "@types/jsonwebtoken": "^9.0.8",
+    "@types/mapbox__mapbox-sdk": "^0.16.1",
     "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/react": "^19.1.0",
     "@types/react-dom": "^19",
+    "@types/react-places-autocomplete": "^7.2.14",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",

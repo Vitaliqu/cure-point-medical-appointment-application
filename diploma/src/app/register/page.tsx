@@ -2,7 +2,15 @@
 import React, { useState } from 'react';
 import { registerUser } from '../../../backend/pages/api/auth/register';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image'; // Make sure to import Image from 'next/image'
+import Image from 'next/image';
+import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import { auth } from '../../../backend/lib/firebaseConfig';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
+
+interface addressProps {
+  id: string;
+  place_name: string;
+}
 
 const RegistrationForm = () => {
   const router = useRouter();
@@ -12,22 +20,44 @@ const RegistrationForm = () => {
   const [name, setName] = useState<string>('');
   const [surname, setSurname] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
-  const [city, setCity] = useState<string>('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<addressProps | null>(null);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError(null);
 
-    if (step === 1 && (!email || !password)) {
-      setError('Please fill in all fields.');
-      return;
+    // Step 1: Validate email and password
+    if (step === 1) {
+      if (!email || !password) {
+        setError('Please fill in all fields.');
+        return;
+      }
+
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+        if (methods.length > 0) {
+          setError('Email is already in use. Please use a different email.');
+          return;
+        }
+
+        // Save email and password at this stage (if validation passes)
+        setEmail(email);
+        setPassword(password);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(`Invalid email or unable to verify email. Please try again. ${err.message}`);
+        } else {
+          setError('An unknown error occurred.');
+        }
+        return;
+      }
     } else if (step === 2 && (!name || !surname)) {
       setError('Please fill in all fields.');
       return;
-    } else if (step === 3 && (!phone || !city)) {
+    } else if (step === 3 && (!phone || !selectedAddress)) {
       setError('Please fill in all fields.');
       return;
     }
@@ -54,8 +84,12 @@ const RegistrationForm = () => {
       setError('Please upload a profile photo.');
       return;
     }
+    if (!selectedAddress) {
+      setError('Please select a city.');
+      return;
+    }
 
-    const response = await registerUser({ email, password, name, surname, phone, city, photo });
+    const response = await registerUser({ email, password, name, surname, phone, selectedAddress, photo });
 
     if (response.error) {
       setError(response.error || 'An unknown error occurred.');
@@ -143,14 +177,7 @@ const RegistrationForm = () => {
             required
           />
           <label className="block text-sm mb-1">City</label>
-          <input
-            type="text"
-            placeholder="Enter your city"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+          <PlacesAutocomplete setSelectedAddress={setSelectedAddress} />
           <button
             onClick={handleNext}
             className="w-full bg-blue-600 hover:bg-blue-700 transition p-3 rounded-lg text-white font-semibold"

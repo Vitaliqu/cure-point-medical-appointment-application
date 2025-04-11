@@ -9,11 +9,19 @@ interface RegisterUserProps {
   name: string;
   surname: string;
   phone: string;
-  city: string;
+  selectedAddress: { id: string; place_name: string };
   photo?: File;
 }
 
-export const registerUser = async ({ email, password, name, surname, phone, city, photo }: RegisterUserProps) => {
+export const registerUser = async ({
+  email,
+  password,
+  name,
+  surname,
+  phone,
+  selectedAddress,
+  photo,
+}: RegisterUserProps) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -35,7 +43,7 @@ export const registerUser = async ({ email, password, name, surname, phone, city
       name,
       surname,
       phone,
-      city,
+      selectedAddress,
       photoURL, // Save the uploaded image URL
     });
 
