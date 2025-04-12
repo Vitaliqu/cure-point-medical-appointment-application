@@ -65,7 +65,7 @@ const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress }) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         type="text"
         placeholder="Enter your city/address"
@@ -77,16 +77,16 @@ const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress }) => {
             setFocused(false);
           }, 100); // delay to allow click on suggestion
         }}
-        className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full p-3 border transition-all focus:border-blue-500 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       {focused && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-gray-900 border border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {suggestions.map((item) => (
             <li
               key={item.id}
               onMouseDown={(e) => e.preventDefault()} // keep input focused
               onClick={() => handleSelect(item)}
-              className="p-2 hover:bg-gray-800 cursor-pointer"
+              className="p-2 hover:bg-gray-200 cursor-pointer"
             >
               {item.place_name}
             </li>

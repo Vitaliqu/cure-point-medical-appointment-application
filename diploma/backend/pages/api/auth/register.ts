@@ -9,7 +9,7 @@ interface RegisterUserProps {
   name: string;
   surname: string;
   phone: string;
-  selectedAddress: { id: string; place_name: string };
+  selectedAddress: { coordinates: [number, number]; id: string; place_name: string };
   photo?: File;
   role: 'patient' | 'doctor';
   fields: string[] | null;

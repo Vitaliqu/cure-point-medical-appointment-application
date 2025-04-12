@@ -145,7 +145,11 @@ const MapboxExample: React.FC = () => {
     );
   }
 
-  return <div ref={mapContainerRef} id="map" style={{ height: '100vh', width: '100%' }} />;
+  return (
+    <div className="w-full h-full mt-8">
+      <div ref={mapContainerRef} id="map" className="w-full h-full rounded-xl shadow-lg" />
+    </div>
+  );
 };
 
 export default MapboxExample;

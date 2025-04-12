@@ -1,27 +1,21 @@
 .custom-geocoder-input{
-    background-color: rgb(31, 41, 55);
-    margin-bottom: 5rem;
-    position: relative;
+    width: 100%;
+
+    padding: 0.75rem; /* p-3 */
+    border-radius: 0.5rem; /* rounded-lg */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    transition: all 0.2s ease-in-out;
 }
 .custom-geocoder-input input{
-    position: absolute;
-    width: 100%;
-    left: 0;
-    top: 0;
-    height: 100%;
-    color: white;
-    padding-left: 1rem;
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-    font-size: 1rem;
-    background-color: rgb(31, 41, 55);
-    border: 1px solid #4b5563; /* border-gray-700 */
-    border-radius: 0.5rem;
+    border-color: #3b82f6; /* blue-500 */
+    outline: none;
+    box-shadow: 0 0 0 2px #bfdbfe;
+    transition: all 0.2s ease-in-out;
+
 }
 .custom-geocoder-input svg{
     display: none;
 }
 .custom-geocoder-input input:focus{
-    color: white;
     border: 1px solid #4b5563; /* border-gray-700 */
     outline: 2px solid #3b82f6; /* focus:ring-2 focus:ring-blue-500 */}

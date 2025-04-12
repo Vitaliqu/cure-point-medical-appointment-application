@@ -1,36 +1,51 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { User, Heart, MapPin, Phone, Edit2, LogOut } from 'lucide-react';
 import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { signOut, onAuthStateChanged, User } from 'firebase/auth';
-import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import { signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData'; // Import Image from next/image
+import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
 
-const Profile = () => {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+function App() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const router = useRouter();
+  const [photoPreview, setPhotoPreview] = useState<string>('');
 
-  const [formData, setFormData] = useState({
+  type UserFormData = {
+    name: string;
+    surname: string;
+    phone: string;
+    selectedAddress: {
+      coordinates: [number, number];
+      id: string;
+      place_name: string;
+    };
+    photoURL: string;
+  };
+
+  const [formData, setFormData] = useState<UserFormData>({
     name: '',
     surname: '',
     phone: '',
-    selectedAddress: { coordinates: [0, 0] as [number, number], id: '', place_name: '' },
+    selectedAddress: {
+      coordinates: [0, 0],
+      id: '',
+      place_name: '',
+    },
     photoURL: '',
   });
 
-  // Listen for authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        router.push('/authorisation'); // Redirect if not logged in
+        router.push('/authorisation');
         return;
       }
 
@@ -39,23 +54,19 @@ const Profile = () => {
 
       if (userData) {
         setFormData(userData);
-        setPhotoPreview(userData.photoURL || null);
+        setPhotoPreview(userData.photoURL || photoPreview);
       }
 
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [photoPreview, router]);
 
-  // Fetch user data from Firestore
-
-  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle photo selection
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -64,21 +75,18 @@ const Profile = () => {
     }
   };
 
-  // Handle profile update
   const handleSave = async () => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
 
     let photoURL = formData.photoURL;
 
-    // Upload new photo if changed
     if (photo) {
       const photoRef = ref(storage, `profilePictures/${user.uid}`);
       await uploadBytes(photoRef, photo);
       photoURL = await getDownloadURL(photoRef);
     }
 
-    // Update Firestore
     await updateDoc(userRef, {
       ...formData,
       photoURL,
@@ -88,9 +96,9 @@ const Profile = () => {
     setEditing(false);
   };
 
-  // Handle logout
   const handleLogout = async () => {
     await signOut(auth);
+    console.log(auth.currentUser);
     router.push('/authorisation');
   };
 
@@ -103,115 +111,156 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-900 text-white rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold text-center mb-6">Profile</h2>
-      <div className="flex flex-col items-center">
-        <Image
-          src={photoPreview || '/default-avatar.png'}
-          alt="Profile"
-          width={128}
-          height={128}
-          className="rounded-full border border-gray-600 mb-4"
-        />
-        {editing && <input type="file" accept="image/*" onChange={handlePhotoChange} className="mb-4 w-full text-sm" />}
-      </div>
+    <div className="h-full bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 md:px-8 md:py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <Heart className="text-white w-6 h-6 md:w-8 md:h-8" />
+                <h1 className="text-xl font-bold text-white md:text-2xl">MedConnect</h1>
+              </div>
+            </div>
+          </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm">First Name</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            disabled={!editing}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
-          />
+          <div className="p-4 md:p-8">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+              {/* Left Column - Profile Photo */}
+              <div className="lg:w-1/3 flex flex-col items-center">
+                <div className="relative">
+                  <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg">
+                    <Image fill src={photoPreview} alt="Profile" className="object-cover" />
+                  </div>
+                  {editing && (
+                    <div className="absolute bottom-1 right-1 md:bottom-2 md:right-2">
+                      <input
+                        id="photo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer bg-blue-600 w-8 absolute h-8 p-2 bottom-1 right-1 rounded-full text-white hover:bg-blue-700 transition"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <h2 className="mt-2 text-lg font-semibold text-gray-800 md:text-2xl">{`${formData.name} ${formData.surname}`}</h2>
+                <p className="text-blue-600 font-medium text-sm md:text-base">Patient Profile</p>
+              </div>
+
+              {/* Right Column - Profile Details */}
+              <div className="lg:w-2/3">
+                <div className="space-y-4 md:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1 md:mb-2">First Name</label>
+                      <div className="relative flex items-center">
+                        <User className="absolute left-2 md:left-3 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          disabled={!editing}
+                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1 md:mb-2">Last Name</label>
+                      <div className="relative flex items-center">
+                        <User className="absolute left-2 md:left-3 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                        <input
+                          type="text"
+                          name="surname"
+                          value={formData.surname}
+                          onChange={handleChange}
+                          disabled={!editing}
+                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1 md:mb-2">Phone Number</label>
+                      <div className="relative flex items-center">
+                        <Phone className="absolute left-2 md:left-3 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          disabled={!editing}
+                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1 md:mb-2">Address</label>
+                      <div className="relative flex items-center">
+                        <MapPin className="absolute left-2 md:left-3 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
+                        {editing ? (
+                          <div className="w-full">
+                            <PlacesAutocomplete
+                              setSelectedAddress={(e) => {
+                                setFormData({ ...formData, selectedAddress: e });
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.selectedAddress.place_name}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Action Buttons */}
+                <div className="mt-6 flex flex-col sm:flex-row sm:gap-x-8">
+                  <div className="w-full">
+                    <button
+                      onClick={editing ? handleSave : () => setEditing(true)}
+                      className={`flex items-center justify-center w-full mb-2 sm:mb-0 px-4 py-3 rounded-lg font-medium ${
+                        editing
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      } transition text-sm md:text-base`}
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      {editing ? 'Save Changes' : 'Edit Profile'}
+                    </button>
+                  </div>
+                  <div className="w-full">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center justify-center w-full px-4 py-3 rounded-lg font-medium bg-red-100 text-red-600 hover:bg-red-200 transition text-sm md:text-base"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div>
-          <label className="block text-sm">Surname</label>
-          <input
-            type="text"
-            name="surname"
-            value={formData.surname}
-            onChange={handleChange}
-            disabled={!editing}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm">Phone</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            disabled={!editing}
-            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm">City</label>
-          {editing ? (
-            <PlacesAutocomplete
-              setSelectedAddress={(e) => {
-                console.log(e);
-                formData.selectedAddress = e;
-              }}
-            />
-          ) : (
-            <input
-              type="text"
-              name="city"
-              value={formData.selectedAddress.place_name}
-              onChange={handleChange}
-              disabled={true}
-              className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none"
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-between">
-        {editing ? (
-          <button
-            onClick={handleSave}
-            className="bg-green-600 hover:bg-green-700 transition p-2 rounded-lg text-white font-semibold"
-          >
-            Save Changes
-          </button>
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="bg-blue-600 hover:bg-blue-700 transition p-2 rounded-lg text-white font-semibold"
-          >
-            Edit Profile
-          </button>
-        )}
-        <button
-          onClick={() => router.push('/map')}
-          className="bg-green-600 hover:bg-green-700 transition p-2 rounded-lg text-white font-semibold"
-        >
-          Map
-        </button>
-        <button
-          onClick={() => router.push('/users')}
-          className="bg-yellow-600 hover:bg-yellow-700 transition p-2 rounded-lg text-white font-semibold"
-        >
-          Chat
-        </button>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 transition p-2 rounded-lg text-white font-semibold"
-        >
-          Logout
-        </button>
       </div>
     </div>
   );
-};
+}
 
-export default Profile;
+export default App;

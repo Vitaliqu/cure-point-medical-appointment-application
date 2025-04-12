@@ -4,9 +4,3 @@
 @tailwind utilities;
 /* In your global CSS or a component-specific CSS module */
 /* Assuming the input has no unique class, apply to all inputs inside the component */
-/* In your global CSS file or in a CSS module */
-.geocoder-dropdown-text {
-    color: #5a3fc0;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: larger;
-}

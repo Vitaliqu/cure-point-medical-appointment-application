@@ -1,99 +1,152 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { Heart, Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { loginUser } from '../../../backend/pages/api/auth/login';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
 
-const AuthForm = () => {
-  const router = useRouter();
-
+function Authorisation() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null | undefined>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && currentUser.emailVerified) {
+        router.push('/profile');
+        return;
+      }
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    const { error, success } = await loginUser(email, password);
-    if (error) {
-      setError(error);
-    } else {
-      setSuccess(success);
+    try {
+      const { error, success } = await loginUser(email, password);
+      if (error) {
+        setError(error);
+      } else {
+        setSuccess(success);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      router.push('/profile');
-    }
-  }, [user, router]);
-
   return (
-    <div className="max-w-md mx-auto mt-10 p-8 bg-gray-800 text-white rounded-xl shadow-lg">
-      <h2 className="text-3xl font-semibold text-center mb-6">Authentication</h2>
-      {error && <p className="text-red-400 text-center">{error}</p>}
-      {success && <p className="text-green-400 text-center">{success}</p>}
-      {!user && (
-        <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoComplete="email"
-          />
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full p-3 pr-10 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none"
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+    <div className="h-full bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-center">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <Heart className="text-white w-8 h-8" />
+              <h1 className="text-2xl font-bold text-white">MedConnect</h1>
+            </div>
+            <p className="text-blue-100">Sign in to access your medical profile</p>
           </div>
-          <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-            Sign In
-          </button>
-        </form>
-      )}
-      {!user && (
-        <div className="mt-4 text-center">
-          <p className="text-sm">Do not have an account?</p>
-          <Link href="/register">
-            <button className="w-full bg-green-600 text-white p-2 rounded-lg mt-2 hover:bg-green-700">Register</button>
-          </Link>
+
+          <div className="p-8">
+            {error && <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-lg">{error}</div>}
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-100 text-green-600 rounded-lg">{success}</div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium text-white 
+                    ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition`}
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm flex flex-row justify-center text-gray-600 mb-4">
+                Don<p>&apos;</p>t have an account?
+              </p>
+              <p
+                onClick={() => router.push('/register')}
+                className="flex items-center justify-center px-6 cursor-pointer py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition"
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                Create Account
+              </p>
+            </div>
+          </div>
         </div>
-      )}
+
+        <p className="text-center mt-8 text-sm text-gray-600">
+          By signing in, you agree to our
+          <a href="#" className="text-blue-600 hover:underline">
+            Terms of Service
+          </a>
+          and
+          <a href="#" className="text-blue-600 hover:underline">
+            Privacy Policy
+          </a>
+        </p>
+      </div>
     </div>
   );
-};
+}
 
-export default AuthForm;
+export default Authorisation;
