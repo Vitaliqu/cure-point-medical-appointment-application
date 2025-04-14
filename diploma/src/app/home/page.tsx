@@ -18,7 +18,7 @@ const Home = () => {
   return (
     <div className="min-h-full">
       {/* Hero Section */}
-      <section className="flex flex-col md:flex-row py-8 px-3 md:px-16 sm:px-4 bg-gradient-to-b from-blue-100 to-blue-50">
+      <section className="flex flex-col md:flex-row py-8 px-3 gap-6  md:px-16 sm:px-4 bg-gradient-to-b from-blue-100 to-blue-50">
         <div className="flex-1 flex flex-col gap-y-3 lg:gap-y-6 items-start justify-center text-center md:text-start w-full">
           <h2 className="font-black text-4xl md:text-4xl lg:text-6xl w-full">Your Health, Our Priority</h2>
           <p className="text-blue-950 text-lg md:text-xl lg:text-2xl font-medium w-full">
@@ -65,7 +65,7 @@ const Home = () => {
       </section>
 
       {/* Services */}
-      <section className="flex flex-col items-center justify-center md:px-16 bg-gradient-to-b from-blue-100 to-blue-50">
+      <section className="flex flex-col items-center px-4 justify-center md:px-16 bg-gradient-to-b from-blue-100 to-blue-50">
         <h3 className="text-2xl md:text-4xl font-black text-center py-8 md:py-12 lg:py-20 w-full">Our Services</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-[487px] md:max-w-full mb-8 md:mb-12">
           <ServiceCard
