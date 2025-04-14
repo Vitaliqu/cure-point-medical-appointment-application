@@ -1,6 +1,11 @@
-/* ./globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Special+Gothic&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 /* In your global CSS or a component-specific CSS module */
 /* Assuming the input has no unique class, apply to all inputs inside the component */
+html, body {
+    font-family: "Special Gothic", sans-serif;    font-optical-sizing: auto;
+    font-style: normal;
+    font-weight: 400;
+}

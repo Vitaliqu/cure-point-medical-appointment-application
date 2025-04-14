@@ -1,97 +1,112 @@
 'use client';
-import { Heart, Map, MessageCircle, User, Menu } from 'lucide-react';
+
+import { Heart, User, Menu } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
 
 const Header = () => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState(false);
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.emailVerified) setUser(true);
-      else setUser(false);
-    });
-    return () => unsubscribe();
-  });
-  return (
-    <header className="bg-blue-600 text-white p-4 flex z-50 h-16 items-center justify-between md:flex-row fixed top-0 right-0 left-0">
-      <div className="flex items-center space-x-2">
-        <Heart className="text-white w-6 h-6" />
-        <h1 className="text-xl font-bold text-white">MedConnect</h1>
-      </div>
-      {/* Mobile Menu Button */}
-      {user && (
-        <div className="md:hidden relative">
-          <button onClick={toggleMobileMenu} className="text-white focus:outline-none">
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      )}
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-      {user && (
-        <div className="hidden md:flex space-x-4">
-          <button
-            onClick={() => router.push('/users')}
-            className="flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Messages
-          </button>
-          <button
-            onClick={() => router.push('/map')}
-            className="flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm"
-          >
-            <Map className="w-4 h-4 mr-2" />
-            View Map
-          </button>
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm"
-          >
-            <User className="w-4 h-4 mr-2" />
-            Profile
-          </button>
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      await fetchUserData(currentUser.uid); // assuming photo might be used later
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const navItems = [
+    { label: 'Home', path: '/home' },
+    { label: 'Doctors', path: '/doctors' },
+    { label: 'Services', path: '/profile' },
+    { label: 'About', path: '/profile' },
+    { label: 'Profile', path: '/profile' },
+  ];
+
+  return (
+    <header
+      className={`bg-white shadow text-black py-4 z-50 fixed top-0 left-0 right-0 transition-all overflow-hidden flex flex-col items-start justify-between ${
+        isMobileMenuOpen ? 'h-72' : 'h-16'
+      } md:h-16`}
+    >
+      <div className="flex w-full flex-row px-4 md:px-16 items-center justify-between">
+        <div onClick={() => router.push('/home')} className="flex items-center gap-2 cursor-pointer">
+          <Heart className="text-blue-500 w-6 h-6" />
+          <h1 className="text-xl font-black text-blue-500">MedConnect</h1>
         </div>
-      )}
-      {/* Mobile Dropdown Menu */}
-      {isMobileMenuOpen && (
-        <div className="absolute transition-all top-full left-0 right-0 bg-blue-600 shadow-md rounded-b-lg overflow-hidden z-10">
-          <button
-            onClick={() => {
-              router.push('/users');
-              toggleMobileMenu();
-            }}
-            className="block w-full text-left px-4 py-3 font-medium text-white hover:bg-blue-500 transition text-sm"
-          >
-            <MessageCircle className="w-4 h-4 mr-2 inline-block" />
-            Messages
-          </button>
-          <button
-            onClick={() => {
-              router.push('/map');
-              toggleMobileMenu();
-            }}
-            className="block w-full text-left px-4 py-3 font-medium text-white hover:bg-blue-500 transition text-sm"
-          >
-            <Map className="w-4 h-4 mr-2 inline-block" />
-            View Map
-          </button>
-          <button
-            onClick={() => {
-              router.push('/profile');
-              toggleMobileMenu();
-            }}
-            className="block w-full text-left px-4 py-3 font-medium text-white hover:bg-blue-500 transition text-sm"
-          >
-            <User className="w-4 h-4 mr-2 inline-block" />
-            Profile
-          </button>
+
+        <nav className="hidden md:flex items-center space-x-6 text-sm lg:text-lg">
+          {navItems.slice(0, 4).map(({ label, path }) => (
+            <div
+              key={label}
+              onClick={() => router.push(path)}
+              className="cursor-pointer hover:text-blue-500 transition-colors"
+            >
+              {label}
+            </div>
+          ))}
+        </nav>
+
+        <div className="flex items-center space-x-4">
+          {!isAuthenticated ? (
+            <>
+              <div
+                onClick={() => router.push('/authorisation')}
+                className="text-blue-500 cursor-pointer hover:text-blue-700 transition-colors"
+              >
+                Sign In
+              </div>
+              <button
+                onClick={() => router.push('/register')}
+                className="bg-blue-500 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Register
+              </button>
+            </>
+          ) : (
+            <>
+              <User
+                onClick={() => router.push('/profile')}
+                className="hidden md:flex size-8 cursor-pointer text-blue-500 hover:text-blue-700 transition-colors"
+              />
+              <button onClick={toggleMobileMenu} className="md:hidden">
+                <Menu className="w-6 h-6" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      {isAuthenticated && (
+        <div className="w-full mt-5 md:hidden bg-white z-10">
+          {navItems.map(({ label, path }) => (
+            <button
+              key={label}
+              onClick={() => {
+                router.push(path);
+                toggleMobileMenu();
+              }}
+              className="block w-full text-left px-4 py-3 font-medium text-sm hover:bg-blue-500 transition-colors"
+            >
+              {label}
+            </button>
+          ))}
         </div>
       )}
     </header>

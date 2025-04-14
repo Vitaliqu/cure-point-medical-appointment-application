@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Heart, Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { loginUser } from '../../../backend/pages/api/auth/login';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ function Authorisation() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser && currentUser.emailVerified) {
-        router.push('/profile');
+        router.push('/home');
         return;
       }
     });
@@ -44,16 +44,12 @@ function Authorisation() {
   };
 
   return (
-    <div className="h-full bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">
+    <div className="h-full flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <Heart className="text-white w-8 h-8" />
-              <h1 className="text-2xl font-bold text-white">MedConnect</h1>
-            </div>
-            <p className="text-blue-100">Sign in to access your medical profile</p>
+          <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-8 py-6 text-center">
+            <p className="text-white font-medium text-left text-2xl">Sign in</p>
           </div>
 
           <div className="p-8">
@@ -120,9 +116,7 @@ function Authorisation() {
             </form>
 
             <div className="mt-8 text-center">
-              <p className="text-sm flex flex-row justify-center text-gray-600 mb-4">
-                Don<p>&apos;</p>t have an account?
-              </p>
+              <p className="text-sm flex flex-row justify-center text-gray-600 mb-4">Don&apos;t have an account?</p>
               <p
                 onClick={() => router.push('/register')}
                 className="flex items-center justify-center px-6 cursor-pointer py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition"
@@ -135,11 +129,11 @@ function Authorisation() {
         </div>
 
         <p className="text-center mt-8 text-sm text-gray-600">
-          By signing in, you agree to our
+          By signing in, you agree to our{' '}
           <a href="#" className="text-blue-600 hover:underline">
             Terms of Service
-          </a>
-          and
+          </a>{' '}
+          and{' '}
           <a href="#" className="text-blue-600 hover:underline">
             Privacy Policy
           </a>

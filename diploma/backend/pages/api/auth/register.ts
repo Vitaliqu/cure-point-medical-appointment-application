@@ -2,6 +2,10 @@ import { setDoc, doc } from 'firebase/firestore';
 import { auth, db, storage } from '../../../lib/firebaseConfig';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+type AvailableSlot = {
+  date: string; // e.g. "2025-04-15"
+  times: string[]; // e.g. ["09:00", "10:30", "14:00"]
+};
 
 interface RegisterUserProps {
   email: string;
@@ -13,6 +17,7 @@ interface RegisterUserProps {
   photo?: File;
   role: 'patient' | 'doctor';
   fields: string[] | null;
+  availableSlots: AvailableSlot[] | null;
 }
 
 export const registerUser = async ({
@@ -25,6 +30,7 @@ export const registerUser = async ({
   photo,
   role,
   fields,
+  availableSlots,
 }: RegisterUserProps) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -52,6 +58,7 @@ export const registerUser = async ({
       photoURL, // Save the uploaded image URL
       role,
       fields,
+      availableSlots,
     });
 
     // Send email verification

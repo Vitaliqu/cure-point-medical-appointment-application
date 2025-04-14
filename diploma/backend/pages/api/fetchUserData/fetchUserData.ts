@@ -10,6 +10,7 @@ interface CustomUserData {
     id: string;
     place_name: string;
   };
+  role: string;
   photoURL: string;
 }
 

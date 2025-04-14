@@ -50,7 +50,7 @@ function Register() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.emailVerified) router.push('/profile');
+      if (currentUser && currentUser.emailVerified) router.push('/home');
     });
     return () => unsubscribe();
   }, [router]);
@@ -135,6 +135,7 @@ function Register() {
       photo,
       role,
       fields: medicalFields,
+      availableSlots: null,
     });
     setIsLoading(false);
     if (response.error) {

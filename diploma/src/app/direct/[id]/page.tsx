@@ -36,11 +36,15 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   // Listen for auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        router.push('/login');
+        return;
+      }
       setUser(currentUser);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   // Fetch messages
   useEffect(() => {

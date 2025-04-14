@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { User, Heart, MapPin, Phone, Edit2, LogOut } from 'lucide-react';
+import { User, MapPin, Phone, Edit2, LogOut, MessageCircle, Map } from 'lucide-react';
 import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -10,11 +10,14 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
 
-function App() {
+function Profile() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<{ date: string; time: string }[]>([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
   const router = useRouter();
   const [photoPreview, setPhotoPreview] = useState<string>('');
 
@@ -27,6 +30,7 @@ function App() {
       id: string;
       place_name: string;
     };
+    role: string;
     photoURL: string;
   };
 
@@ -39,6 +43,7 @@ function App() {
       id: '',
       place_name: '',
     },
+    role: '',
     photoURL: '',
   });
 
@@ -75,6 +80,18 @@ function App() {
     }
   };
 
+  const addAvailableSlot = async () => {
+    if (!user || !selectedDate || !selectedTime) return;
+    const newSlot = { date: selectedDate, time: selectedTime };
+    const updatedSlots = [...availableSlots, newSlot];
+    setAvailableSlots(updatedSlots);
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      availableSlots: updatedSlots,
+    });
+  };
+
   const handleSave = async () => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
@@ -99,7 +116,7 @@ function App() {
   const handleLogout = async () => {
     await signOut(auth);
     console.log(auth.currentUser);
-    router.push('/authorisation');
+    router.push('/home');
   };
 
   if (loading) {
@@ -111,21 +128,18 @@ function App() {
   }
 
   return (
-    <div className="h-full bg-gradient-to-b from-blue-50 to-white">
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="h-full">
+      <div className="max-w-6xl mx-auto p-0 md:p-8">
+        <div className="bg-white rounded-none md:rounded-xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 md:px-8 md:py-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 md:space-x-3">
-                <Heart className="text-white w-6 h-6 md:w-8 md:h-8" />
-                <h1 className="text-xl font-bold text-white md:text-2xl">MedConnect</h1>
-              </div>
+              <h1 className="text-xl font-bold text-white md:text-2xl">Profile</h1>
             </div>
           </div>
 
           <div className="p-4 md:p-8">
-            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            <div className="flex flex-col lg:flex-row gap-0 md:gap-6 lg:gap-8">
               {/* Left Column - Profile Photo */}
               <div className="lg:w-1/3 flex flex-col items-center">
                 <div className="relative">
@@ -151,7 +165,7 @@ function App() {
                   )}
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-gray-800 md:text-2xl">{`${formData.name} ${formData.surname}`}</h2>
-                <p className="text-blue-600 font-medium text-sm md:text-base">Patient Profile</p>
+                <p className="text-blue-600 font-medium text-sm md:text-base">{formData.role} Profile</p>
               </div>
 
               {/* Right Column - Profile Details */}
@@ -229,12 +243,32 @@ function App() {
                     </div>
                   </div>
                 </div>
-                {/* Action Buttons */}
-                <div className="mt-6 flex flex-col sm:flex-row sm:gap-x-8">
+                <div className="mt-6 flex flex-col gap-y-4 sm:flex-row sm:gap-x-8">
+                  <div className="w-full">
+                    <button
+                      onClick={() => router.push('/users')}
+                      className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Messages
+                    </button>
+                  </div>
+                  <div className="w-full">
+                    <button
+                      onClick={() => router.push('/map')}
+                      className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
+                    >
+                      <Map className="w-4 h-4 mr-2" />
+                      View Map
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-y-4 sm:flex-row sm:gap-x-8">
                   <div className="w-full">
                     <button
                       onClick={editing ? handleSave : () => setEditing(true)}
-                      className={`flex items-center justify-center w-full mb-2 sm:mb-0 px-4 py-3 rounded-lg font-medium ${
+                      className={`flex items-center justify-center w-full px-4 py-3 rounded-lg font-medium ${
                         editing
                           ? 'bg-green-600 text-white hover:bg-green-700'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -254,6 +288,42 @@ function App() {
                     </button>
                   </div>
                 </div>
+                {formData.role === 'doctor' && (
+                  <div className="mt-6">
+                    <h2 className="text-lg font-semibold mb-4">Set Available Time</h2>
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="border p-2 rounded"
+                      />
+                      <input
+                        type="time"
+                        value={selectedTime}
+                        onChange={(e) => setSelectedTime(e.target.value)}
+                        className="border p-2 rounded"
+                      />
+                      <button
+                        onClick={addAvailableSlot}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                      >
+                        Add Slot
+                      </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <h3 className="font-medium mb-2">Current Slots:</h3>
+                      <ul className="list-disc pl-5 text-sm">
+                        {availableSlots.map((slot, index) => (
+                          <li key={index}>
+                            {slot.date} at {slot.time}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -263,4 +333,4 @@ function App() {
   );
 }
 
-export default App;
+export default Profile;

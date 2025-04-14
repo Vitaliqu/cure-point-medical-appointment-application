@@ -10,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <main className="bg-gradient-to-b from-blue-50 to-white">
+        <main className="">
           <Header />
           <main className={'h-[calc(100vh-64px)] mt-16'}>{children}</main>
         </main>
