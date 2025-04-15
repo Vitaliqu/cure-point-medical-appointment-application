@@ -9,10 +9,10 @@ import doctor2 from '../../../public/doctor_2.png';
 import doctor3 from '../../../public/doctor_3.png';
 import doctor4 from '../../../public/doctor_4.png';
 
-import FeatureCard from '@/components/featureCard/FeatureCard';
-import ServiceCard from '@/components/serviceCard/ServiceCard';
-import DentalIcon from '@/components/dentalIcon/DentalIcon';
-import DoctorCard from '@/components/doctorCard/DoctorCard';
+import FeatureCard from '@/components/FeatureCard';
+import ServiceCard from '@/components/ServiceCard';
+import DentalIcon from '@/components/DentalIcon';
+import DoctorCard from '@/components/DoctorCard';
 
 const Home = () => {
   return (

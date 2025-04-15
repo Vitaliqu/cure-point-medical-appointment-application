@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { User, MapPin, Phone, Edit2, LogOut, MessageCircle, Map } from 'lucide-react';
 import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -8,32 +8,38 @@ import { signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth
 import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import PlacesAutocomplete from '@/components/PlacesAutocomplete';
+import AvailableTimePicker from '@/components/AvailableTimePicker';
+
+interface Slot {
+  date: string;
+  time: string[];
+}
+
+interface UserFormData {
+  name: string;
+  surname: string;
+  phone: string;
+  selectedAddress: {
+    coordinates: [number, number];
+    id: string;
+    place_name: string;
+  };
+  role: string;
+  availableSlots: Slot[];
+  photoURL: string;
+}
 
 function Profile() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [photo, setPhoto] = useState<File | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<{ date: string; time: string }[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const router = useRouter();
   const [photoPreview, setPhotoPreview] = useState<string>('');
-
-  type UserFormData = {
-    name: string;
-    surname: string;
-    phone: string;
-    selectedAddress: {
-      coordinates: [number, number];
-      id: string;
-      place_name: string;
-    };
-    role: string;
-    photoURL: string;
-  };
-
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     surname: '',
@@ -44,6 +50,7 @@ function Profile() {
       place_name: '',
     },
     role: '',
+    availableSlots: [],
     photoURL: '',
   });
 
@@ -56,43 +63,50 @@ function Profile() {
 
       setUser(currentUser);
       const userData = await fetchUserData(currentUser.uid);
-
       if (userData) {
+        setAvailableSlots(userData.availableSlots);
         setFormData(userData);
-        setPhotoPreview(userData.photoURL || photoPreview);
+        setPhotoPreview(userData.photoURL || '');
       }
 
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [photoPreview, router]);
+  }, [router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prevFormData) => ({ ...prevFormData, [e.target.name]: e.target.value }));
+  }, []);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setPhoto(file);
       setPhotoPreview(URL.createObjectURL(file));
     }
-  };
+  }, []);
 
-  const addAvailableSlot = async () => {
-    if (!user || !selectedDate || !selectedTime) return;
-    const newSlot = { date: selectedDate, time: selectedTime };
-    const updatedSlots = [...availableSlots, newSlot];
-    setAvailableSlots(updatedSlots);
+  const handleUpdateAvailableSlots = useCallback(
+    async (updatedSlots: Slot[]) => {
+      if (!user) return;
 
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      availableSlots: updatedSlots,
-    });
-  };
+      setAvailableSlots(updatedSlots);
 
-  const handleSave = async () => {
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          availableSlots: updatedSlots,
+        });
+        console.log('Available slots updated in Firestore.');
+      } catch (error) {
+        console.error('Error updating available slots in Firestore:', error);
+      }
+    },
+    [user],
+  );
+
+  const handleSave = useCallback(async () => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
 
@@ -107,17 +121,18 @@ function Profile() {
     await updateDoc(userRef, {
       ...formData,
       photoURL,
+      availableSlots,
     });
 
+    setPhoto(null); // Clear the photo state after upload
     setPhotoPreview(photoURL);
     setEditing(false);
-  };
+  }, [availableSlots, formData, photo, user]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await signOut(auth);
-    console.log(auth.currentUser);
     router.push('/home');
-  };
+  }, [router]);
 
   if (loading) {
     return (
@@ -144,7 +159,7 @@ function Profile() {
               <div className="lg:w-1/3 flex flex-col items-center">
                 <div className="relative">
                   <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg">
-                    <Image fill src={photoPreview} alt="Profile" className="object-cover" />
+                    <Image fill src={photoPreview || '/placeholder-user.png'} alt="Profile" className="object-cover" />
                   </div>
                   {editing && (
                     <div className="absolute bottom-1 right-1 md:bottom-2 md:right-2">
@@ -225,7 +240,7 @@ function Profile() {
                           <div className="w-full">
                             <PlacesAutocomplete
                               setSelectedAddress={(e) => {
-                                setFormData({ ...formData, selectedAddress: e });
+                                setFormData((prevFormData) => ({ ...prevFormData, selectedAddress: e }));
                               }}
                             />
                           </div>
@@ -251,6 +266,14 @@ function Profile() {
                     >
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Messages
+                    </button>
+                  </div>
+                  <div className="w-full">
+                    <button
+                      onClick={() => router.push('/appointments')}
+                      className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
+                    >
+                      Appointments
                     </button>
                   </div>
                   <div className="w-full">
@@ -289,40 +312,14 @@ function Profile() {
                   </div>
                 </div>
                 {formData.role === 'doctor' && (
-                  <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-4">Set Available Time</h2>
-                    <div className="flex flex-col sm:flex-row gap-4 items-center">
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="border p-2 rounded"
-                      />
-                      <input
-                        type="time"
-                        value={selectedTime}
-                        onChange={(e) => setSelectedTime(e.target.value)}
-                        className="border p-2 rounded"
-                      />
-                      <button
-                        onClick={addAvailableSlot}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                      >
-                        Add Slot
-                      </button>
-                    </div>
-
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Current Slots:</h3>
-                      <ul className="list-disc pl-5 text-sm">
-                        {availableSlots.map((slot, index) => (
-                          <li key={index}>
-                            {slot.date} at {slot.time}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  <AvailableTimePicker
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    availableSlots={availableSlots}
+                    setSelectedDate={setSelectedDate}
+                    setSelectedTime={setSelectedTime}
+                    onUpdateAvailableSlots={handleUpdateAvailableSlots}
+                  />
                 )}
               </div>
             </div>

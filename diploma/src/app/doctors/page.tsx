@@ -1,17 +1,16 @@
 'use client';
+
 import React, { FC, useEffect, useState } from 'react';
 import { User, Search, Pen } from 'lucide-react';
 import { db, auth } from '../../../backend/lib/firebaseConfig';
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore'; // Import updateDoc and doc
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { onAuthStateChanged } from 'firebase/auth';
-import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import PlacesAutocomplete from '@/components/PlacesAutocomplete';
 import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Timestamp } from 'firebase/firestore';
-
+import AppointmentModal from '@/components/AppointmentModal';
+import { onAuthStateChanged } from 'firebase/auth';
 interface AvailableSlot {
   date: string;
   time: string[];
@@ -51,25 +50,18 @@ const Doctors: FC = () => {
   const [selectedAddress, setSelectedAddress] = useState<AddressProps | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<UserType | null>(null);
-  const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
-  const [availableTimesForSelectedDate, setAvailableTimesForSelectedDate] = useState<string[]>([]);
   const router = useRouter();
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) return;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userData = await fetchUserData(user.uid);
+        if (userData) {
+          setSelectedAddress(userData.selectedAddress);
+        }
+      }
     });
-    return () => unsubscribe();
-  }, [router]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!auth.currentUser) return;
-      const userData = await fetchUserData(auth.currentUser.uid);
-      if (!userData) return;
-      setSelectedAddress(userData.selectedAddress);
-    };
-    fetchUser();
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -78,10 +70,10 @@ const Doctors: FC = () => {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('role', '==', 'doctor'));
         const querySnapshot = await getDocs(q);
-
         const userList: UserType[] = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+
           userList.push({
             uid: doc.id,
             displayName: data.name,
@@ -99,6 +91,7 @@ const Doctors: FC = () => {
           filteredList.forEach((doctor) => {
             doctor.distance = haversineDistance(selectedAddress.coordinates, doctor.coordinates);
           });
+
           filteredList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
         }
 
@@ -113,45 +106,16 @@ const Doctors: FC = () => {
     fetchUsers();
   }, [selectedAddress]);
 
-  const handleConfirmAppointment = async () => {
-    if (!appointmentDate || !selectedDoctor || !auth.currentUser) return;
-
-    try {
-      await addDoc(collection(db, 'appointments'), {
-        doctorId: selectedDoctor.uid,
-        doctorName: selectedDoctor.displayName,
-        patientId: auth.currentUser.uid,
-        patientName: auth.currentUser.displayName,
-        date: Timestamp.fromDate(appointmentDate), // Store as Firebase Timestamp
-        createdAt: Timestamp.now(),
-      });
-
-      setIsModalOpen(false);
-      setAppointmentDate(null);
-      setSelectedDoctor(null);
-      setAvailableTimesForSelectedDate([]);
-      alert('Appointment successfully created!');
-    } catch (error) {
-      console.error('Error creating appointment:', error);
-    }
-  };
-
   const handleDoctorSelect = (doctor: UserType) => {
-    setSelectedDoctor(doctor);
-    setAppointmentDate(null); // Reset the date when a new doctor is selected
-    setAvailableTimesForSelectedDate([]); // Reset available times
-    setIsModalOpen(true);
-  };
+    if (!auth.currentUser) {
+      router.push(`/authorisation`);
 
-  const handleDateChange = (date: Date | null) => {
-    setAppointmentDate(date);
-    if (date && selectedDoctor) {
-      const formattedDate = date.toISOString().slice(0, 10);
-      const availableSlotForDate = selectedDoctor.availableSlots.find((slot) => slot.date === formattedDate);
-      setAvailableTimesForSelectedDate(availableSlotForDate?.time || []);
-    } else {
-      setAvailableTimesForSelectedDate([]);
+      return;
     }
+
+    setSelectedDoctor(doctor);
+
+    setIsModalOpen(true);
   };
 
   if (loading) {
@@ -175,6 +139,7 @@ const Doctors: FC = () => {
           <div className="p-4 sm:p-6 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+
               <PlacesAutocomplete setSelectedAddress={setSelectedAddress} />
             </div>
           </div>
@@ -184,7 +149,9 @@ const Doctors: FC = () => {
               {users.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+
                   <p className="text-lg font-medium">Nothing found</p>
+
                   <p className="text-sm">Try adjusting your search criteria</p>
                 </div>
               ) : (
@@ -196,12 +163,15 @@ const Doctors: FC = () => {
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
                       <Image fill src={user.photoURL} alt={user.displayName} className="object-cover" />
                     </div>
+
                     <div className="flex-1 text-center sm:text-left">
                       <h3 className="font-semibold text-gray-900">{user.displayName}</h3>
+
                       <p className="text-sm text-gray-500">
                         {user.distance !== undefined ? `${user.distance.toFixed(1)} km away` : 'Distance unknown'}
                       </p>
                     </div>
+
                     <button
                       onClick={() => handleDoctorSelect(user)}
                       className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm w-full sm:w-auto"
@@ -219,56 +189,13 @@ const Doctors: FC = () => {
 
       {/* Modal */}
       {isModalOpen && selectedDoctor && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl w-80 space-y-4">
-            <h2 className="text-xl font-semibold">Select appointment date and time for {selectedDoctor.displayName}</h2>
-            <DatePicker
-              selected={appointmentDate}
-              onChange={handleDateChange}
-              minDate={new Date()}
-              showTimeSelect
-              timeIntervals={30}
-              dateFormat="Pp"
-              filterDate={(date) => {
-                const formattedDate = date.toISOString().slice(0, 10);
-                return selectedDoctor.availableSlots.some((slot) => slot.date === formattedDate);
-              }}
-              filterTime={(time) => {
-                if (!appointmentDate) return false;
-                const formattedDate = appointmentDate.toISOString().slice(0, 10);
-                const availableSlotForDate = selectedDoctor.availableSlots.find((slot) => slot.date === formattedDate);
-                if (availableSlotForDate && availableSlotForDate.time) {
-                  const timeString = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
-                  return availableSlotForDate.time.includes(timeString);
-                }
-                return false;
-              }}
-              className="w-full border px-2 py-1 rounded"
-            />
-            {appointmentDate && availableTimesForSelectedDate.length === 0 && (
-              <p className="text-sm text-red-500">No available times for the selected date.</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAppointment}
-                disabled={!appointmentDate}
-                className={`px-4 py-2 rounded ${
-                  appointmentDate
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
+        <AppointmentModal
+          doctor={selectedDoctor}
+          onClose={() => setIsModalOpen(false)}
+          setIsModalOpen={setIsModalOpen}
+          setUsers={setUsers}
+          setSelectedDoctor={setSelectedDoctor}
+        />
       )}
     </div>
   );

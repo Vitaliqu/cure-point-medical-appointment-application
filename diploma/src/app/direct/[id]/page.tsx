@@ -4,7 +4,7 @@ import { auth, db } from '../../../../backend/lib/firebaseConfig';
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import User type from firebase
 import { useRouter } from 'next/navigation';
-import ChatMessage from '@/components/chatMessage/page';
+import ChatMessage from '@/components/ChatMessage';
 
 interface Message {
   id: string;

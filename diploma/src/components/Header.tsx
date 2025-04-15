@@ -3,9 +3,9 @@
 import { Heart, User, Menu } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '../../../backend/lib/firebaseConfig';
+import { auth } from '../../backend/lib/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '../../backend/pages/api/fetchUserData/fetchUserData';
 
 const Header = () => {
   const router = useRouter();
@@ -35,7 +35,7 @@ const Header = () => {
     { label: 'Doctors', path: '/doctors' },
     { label: 'Services', path: '/profile' },
     { label: 'About', path: '/profile' },
-    { label: 'Profile', path: '/profile' },
+    isAuthenticated ? { label: 'Profile', path: '/profile' } : { label: 'Sign in', path: '/authorisation' },
   ];
 
   return (
@@ -63,52 +63,53 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center space-x-4">
-          {!isAuthenticated ? (
+          {!isAuthenticated && (
             <>
-              <div
-                onClick={() => router.push('/authorisation')}
-                className="text-blue-500 cursor-pointer hover:text-blue-700 transition-colors"
-              >
-                Sign In
+              <div className={'hidden md:flex items-center space-x-4'}>
+                <div
+                  onClick={() => router.push('/authorisation')}
+                  className="text-blue-500 cursor-pointer hover:text-blue-700 transition-colors"
+                >
+                  Sign In
+                </div>
+                <button
+                  onClick={() => router.push('/register')}
+                  className="bg-blue-500 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Register
+                </button>
               </div>
-              <button
-                onClick={() => router.push('/register')}
-                className="bg-blue-500 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Register
-              </button>
             </>
-          ) : (
+          )}
+          {isAuthenticated && (
             <>
               <User
                 onClick={() => router.push('/profile')}
                 className="hidden md:flex size-8 cursor-pointer text-blue-500 hover:text-blue-700 transition-colors"
               />
-              <button onClick={toggleMobileMenu} className="md:hidden">
-                <Menu className="w-6 h-6" />
-              </button>
             </>
-          )}
+          )}{' '}
+          <button onClick={toggleMobileMenu} className="md:hidden">
+            <Menu className="w-6 h-6" />
+          </button>
         </div>
       </div>
 
       {/* Mobile Navigation */}
-      {isAuthenticated && (
-        <div className="w-full mt-5 md:hidden bg-white z-10">
-          {navItems.map(({ label, path }) => (
-            <button
-              key={label}
-              onClick={() => {
-                router.push(path);
-                toggleMobileMenu();
-              }}
-              className="block w-full text-left px-4 py-3 font-medium text-sm hover:bg-blue-500 transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="w-full mt-5 md:hidden bg-white z-10">
+        {navItems.map(({ label, path }) => (
+          <button
+            key={label}
+            onClick={() => {
+              router.push(path);
+              toggleMobileMenu();
+            }}
+            className="block w-full text-left px-4 py-3 font-medium text-sm hover:bg-blue-500 transition-colors"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </header>
   );
 };

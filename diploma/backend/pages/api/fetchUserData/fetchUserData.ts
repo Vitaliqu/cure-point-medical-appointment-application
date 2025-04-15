@@ -1,7 +1,10 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebaseConfig';
 
+type AvailableSlot = { date: string; time: string[] };
+
 interface CustomUserData {
+  uid: string;
   name: string;
   surname: string;
   phone: string;
@@ -11,6 +14,7 @@ interface CustomUserData {
     place_name: string;
   };
   role: string;
+  availableSlots: AvailableSlot[];
   photoURL: string;
 }
 

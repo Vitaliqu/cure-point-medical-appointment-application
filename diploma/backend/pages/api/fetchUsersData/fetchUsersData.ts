@@ -10,6 +10,7 @@ interface UserType {
     id: string;
     place_name: string;
   };
+  role: string;
   photoURL: string;
 }
 const fetchUsersData = async () => {
@@ -26,6 +27,7 @@ const fetchUsersData = async () => {
         surname: data.surname,
         phone: data.phone,
         selectedAddress: data.selectedAddress,
+        role: data.role,
         photoURL: data.photoURL,
       });
     });

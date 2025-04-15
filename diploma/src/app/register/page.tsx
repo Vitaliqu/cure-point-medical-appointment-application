@@ -5,7 +5,7 @@ import Select from 'react-select';
 import { onAuthStateChanged, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { registerUser } from '../../../backend/pages/api/auth/register';
-import PlacesAutocomplete from '@/components/PlacesAutocomplete/PlacesAutocomplete';
+import PlacesAutocomplete from '@/components/PlacesAutocomplete';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 interface AddressProps {
