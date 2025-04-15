@@ -9,7 +9,7 @@ interface Slot {
 interface AvailableTimePickerProps {
   selectedDate: string;
   selectedTime: string;
-  availableSlots: Slot[];
+  availableSlots: Slot[] | null; // Allow null for initial state
   setSelectedDate: (date: string) => void;
   setSelectedTime: (time: string) => void;
   onUpdateAvailableSlots: (updatedSlots: Slot[]) => void;
@@ -25,14 +25,13 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
 }) => {
   const [editingSlot, setEditingSlot] = useState<Slot | null>(null);
   const [editedTimes, setEditedTimes] = useState<string[]>([]);
-
   const handleAddAvailableSlot = useCallback(() => {
     if (!selectedDate || !selectedTime) {
       console.warn('Please select both date and time.');
       return;
     }
 
-    const updatedSlots = [...availableSlots];
+    const updatedSlots = availableSlots ? [...availableSlots] : []; // Handle null case
     const existingSlotIndex = updatedSlots.findIndex((slot) => slot.date === selectedDate);
 
     if (existingSlotIndex >= 0) {
@@ -56,6 +55,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
 
   const handleRemoveTime = useCallback(
     (slotDate: string, timeToRemove: string) => {
+      if (!availableSlots) return;
       const updatedSlots = availableSlots.map((slot) => {
         if (slot.date === slotDate) {
           return { ...slot, time: slot.time.filter((t) => t !== timeToRemove).sort() };
@@ -93,7 +93,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
   }, [editedTimes, selectedTime, setSelectedTime]);
 
   const handleSaveEditedSlot = useCallback(() => {
-    if (!editingSlot) return;
+    if (!editingSlot || !availableSlots) return;
     const updatedSlots = availableSlots.map((slot) =>
       slot.date === editingSlot.date ? { ...slot, time: editedTimes.sort() } : slot,
     );
@@ -111,6 +111,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
 
   const handleDeleteSlot = useCallback(
     (slotToDelete: Slot) => {
+      if (!availableSlots) return;
       const updatedSlots = availableSlots.filter((slot) => slot.date !== slotToDelete.date);
       onUpdateAvailableSlots(updatedSlots);
     },
@@ -147,7 +148,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
 
       <div className="mt-4">
         <h3 className="font-medium mb-2">Current Slots:</h3>
-        {(availableSlots && availableSlots.length === 0) || !availableSlots ? (
+        {availableSlots === null || availableSlots.length === 0 ? (
           <p className="text-sm text-gray-500">No available slots yet.</p>
         ) : (
           <ul className="space-y-2">
