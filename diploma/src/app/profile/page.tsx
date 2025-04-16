@@ -4,43 +4,24 @@ import { User, MapPin, Phone, Edit2, LogOut, MessageCircle, Map } from 'lucide-r
 import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
 import AvailableTimePicker from '@/components/AvailableTimePicker';
-
-interface Slot {
-  date: string;
-  time: string[];
-}
-
-interface UserFormData {
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: {
-    coordinates: [number, number];
-    id: string;
-    place_name: string;
-  };
-  role: string;
-  availableSlots: Slot[];
-  photoURL: string;
-}
+import { Slot, UserType } from '@/interfaces/interfaces';
 
 function Profile() {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
   const router = useRouter();
   const [photoPreview, setPhotoPreview] = useState<string>('');
-  const [formData, setFormData] = useState<UserFormData>({
+  const [formData, setFormData] = useState<UserType>({
+    uid: '',
     name: '',
     surname: '',
     phone: '',
@@ -50,8 +31,9 @@ function Profile() {
       place_name: '',
     },
     role: '',
-    availableSlots: [],
     photoURL: '',
+    fields: [],
+    availableSlots: [],
   });
 
   useEffect(() => {
@@ -61,10 +43,10 @@ function Profile() {
         return;
       }
 
-      setUser(currentUser);
       const userData = await fetchUserData(currentUser.uid);
       if (userData) {
-        setAvailableSlots(userData.availableSlots);
+        setUser(userData);
+        if (userData.availableSlots) setAvailableSlots(userData.availableSlots);
         setFormData(userData);
         setPhotoPreview(userData.photoURL || '');
       }
@@ -134,7 +116,7 @@ function Profile() {
     router.push('/home');
   }, [router]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
@@ -311,13 +293,9 @@ function Profile() {
                     </button>
                   </div>
                 </div>
-                {formData.role === 'doctor' && (
+                {user.role === 'doctor' && (
                   <AvailableTimePicker
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
                     availableSlots={availableSlots}
-                    setSelectedDate={setSelectedDate}
-                    setSelectedTime={setSelectedTime}
                     onUpdateAvailableSlots={handleUpdateAvailableSlots}
                   />
                 )}

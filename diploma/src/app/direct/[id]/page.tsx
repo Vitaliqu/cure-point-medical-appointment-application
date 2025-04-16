@@ -1,17 +1,11 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { auth, db } from '../../../../backend/lib/firebaseConfig';
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, Timestamp, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import User type from firebase
 import { useRouter } from 'next/navigation';
 import ChatMessage from '@/components/ChatMessage';
-
-interface Message {
-  id: string;
-  text: string;
-  participants: string[];
-  createdAt: Timestamp;
-}
+import { Message } from '@/interfaces/interfaces';
 
 const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [id, setId] = useState<string | null>(null);

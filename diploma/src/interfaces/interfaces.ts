@@ -1,0 +1,76 @@
+import { Timestamp } from 'firebase/firestore';
+import React from 'react';
+
+export interface Slot {
+  date: string;
+  time: string[];
+}
+
+export interface AddressProps {
+  coordinates: [number, number];
+  id: string;
+  place_name: string;
+}
+export interface UserType {
+  uid: string;
+  name: string;
+  surname: string;
+  phone: string;
+  selectedAddress: AddressProps;
+  role: string;
+  photoURL: string;
+  fields: string[];
+  availableSlots?: Slot[];
+}
+
+export interface AvailableTimePickerProps {
+  availableSlots: Slot[] | null;
+  onUpdateAvailableSlots: (updatedSlots: Slot[]) => void;
+}
+
+export interface Appointment {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  patientId: string;
+  patientName: string;
+  date: Timestamp;
+  createdAt: Timestamp;
+  status?: 'pending' | 'approved' | 'declined';
+}
+
+export interface Message {
+  id: string;
+  text: string;
+  participants: string[];
+  createdAt: Timestamp;
+}
+
+export interface AppointmentModalProps {
+  doctor: UserType | null;
+  onClose: () => void;
+  setIsModalOpen: (state: boolean) => void;
+  setUsers: React.Dispatch<React.SetStateAction<UserType[]>>;
+  setSelectedDoctor: (doctor: UserType | null) => void;
+}
+
+export interface FeatureProperties {
+  uid: string;
+  message: string;
+  image: string;
+  iconSize: [number, number];
+}
+
+export interface Feature {
+  type: 'Feature';
+  properties: FeatureProperties;
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+}
+
+export interface GeoJSON {
+  type: 'FeatureCollection';
+  features: Feature[];
+}

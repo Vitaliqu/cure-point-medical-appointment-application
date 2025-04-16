@@ -1,18 +1,7 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebaseConfig';
-interface UserType {
-  uid: string;
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: {
-    coordinates: [number, number];
-    id: string;
-    place_name: string;
-  };
-  role: string;
-  photoURL: string;
-}
+import { UserType } from '@/interfaces/interfaces';
+
 const fetchUsersData = async () => {
   try {
     const usersRef = collection(db, 'users');
@@ -29,6 +18,8 @@ const fetchUsersData = async () => {
         selectedAddress: data.selectedAddress,
         role: data.role,
         photoURL: data.photoURL,
+        fields: data.fields,
+        availableSlots: data.availableSlots,
       });
     });
 

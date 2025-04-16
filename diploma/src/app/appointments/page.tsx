@@ -2,42 +2,17 @@
 import React, { FC, useEffect, useState, useCallback } from 'react';
 import { User } from 'lucide-react';
 import { db, auth } from '../../../backend/lib/firebaseConfig';
-import { collection, doc, getDocs, updateDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { onAuthStateChanged } from 'firebase/auth';
 import fetchUsersData from '../../../backend/pages/api/fetchUsersData/fetchUsersData';
 import { format } from 'date-fns';
-
-interface Appointment {
-  id: string;
-  doctorId: string;
-  doctorName: string;
-  patientId: string;
-  patientName: string;
-  date: Timestamp;
-  createdAt: Timestamp;
-  status?: 'pending' | 'approved' | 'declined';
-}
-
-interface UsersType {
-  uid: string;
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: {
-    coordinates: [number, number];
-    id: string;
-    place_name: string;
-  };
-  role: string;
-  photoURL: string;
-  availableSlots?: { date: string; time: string[] }[];
-}
+import { Appointment, UserType } from '@/interfaces/interfaces';
 
 const Appointments: FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [users, setUsers] = useState<UsersType[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -97,7 +72,7 @@ const Appointments: FC = () => {
         if (appointmentData) {
           const doctorRef = doc(db, 'users', appointmentData.doctorId);
           const doctorSnap = await getDoc(doctorRef);
-          const doctorData = doctorSnap.data() as UsersType;
+          const doctorData = doctorSnap.data() as UserType;
 
           const appointmentTimeString = format(appointmentDate, 'HH:mm');
           const appointmentDateString = format(appointmentDate, 'yyyy-MM-dd');

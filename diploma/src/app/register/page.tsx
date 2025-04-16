@@ -8,11 +8,7 @@ import { registerUser } from '../../../backend/pages/api/auth/register';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-interface AddressProps {
-  coordinates: [number, number];
-  id: string;
-  place_name: string;
-}
+import { AddressProps } from '@/interfaces/interfaces';
 
 function Register() {
   // Common state

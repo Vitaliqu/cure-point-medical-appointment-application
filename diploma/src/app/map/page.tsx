@@ -8,44 +8,9 @@ import { auth } from '../../../backend/lib/firebaseConfig';
 import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
 import fetchUsersData from '../../../backend/pages/api/fetchUsersData/fetchUsersData';
 import { useRouter } from 'next/navigation';
+import { GeoJSON, UserType } from '@/interfaces/interfaces';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
-
-interface FeatureProperties {
-  uid: string;
-  message: string;
-  image: string;
-  iconSize: [number, number];
-}
-
-interface Coordinates {
-  coordinates: [number, number];
-  id: string;
-  place_name: string;
-}
-
-interface UserType {
-  uid: string;
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: Coordinates;
-  photoURL: string;
-}
-
-interface Feature {
-  type: 'Feature';
-  properties: FeatureProperties;
-  geometry: {
-    type: 'Point';
-    coordinates: [number, number];
-  };
-}
-
-interface GeoJSON {
-  type: 'FeatureCollection';
-  features: Feature[];
-}
 
 const MapboxExample: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);

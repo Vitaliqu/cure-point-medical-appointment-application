@@ -2,46 +2,10 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { auth, db } from '../../backend/lib/firebaseConfig';
-import { addDoc, collection, doc, getDocs, query, Timestamp, updateDoc, where, DocumentData } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import fetchUserData from '../../backend/pages/api/fetchUserData/fetchUserData';
-
-interface AvailableSlot {
-  date: string;
-  time: string[];
-}
-
-interface UserType extends DocumentData {
-  uid: string;
-  displayName: string;
-  role: string;
-  photoURL: string;
-  coordinates: [number, number];
-  availableSlots: AvailableSlot[];
-  distance?: number;
-}
-
-interface CustomUserData extends DocumentData {
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: {
-    coordinates: [number, number];
-    id: string;
-    place_name: string;
-  };
-  role: string;
-  availableSlots: AvailableSlot[];
-  photoURL: string;
-}
-
-interface AppointmentModalProps {
-  doctor: UserType | null;
-  onClose: () => void;
-  setIsModalOpen: (state: boolean) => void;
-  setUsers: React.Dispatch<React.SetStateAction<UserType[]>>;
-  setSelectedDoctor: (doctor: UserType | null) => void;
-}
+import { UserType, AppointmentModalProps } from '@/interfaces/interfaces';
 
 const AppointmentModal: React.FC<AppointmentModalProps> = ({
   doctor,
@@ -52,11 +16,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 }) => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
-  const [user, setUser] = useState<CustomUserData | null>(null);
+  const [user, setUser] = useState<UserType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-
   // Fetch user data on auth state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -140,7 +103,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
         await addDoc(collection(db, 'appointments'), {
           doctorId: doctor.uid,
-          doctorName: doctor.displayName,
+          doctorName: doctor.name, // Ensure doctor.name is defined
           patientId: auth.currentUser.uid,
           patientName: user?.name,
           date: Timestamp.fromDate(appointmentDate),
@@ -150,6 +113,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
         });
 
         const doctorRef = doc(db, 'users', doctor.uid);
+        if (!doctorData.availableSlots) return;
         const updatedAvailableSlots = doctorData.availableSlots
           .map((s) => (s.date === formattedDate ? { ...s, time: s.time.filter((t) => t !== selectedTime) } : s))
           .filter((s) => s.time.length > 0);
@@ -162,6 +126,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
         setSuccessMessage('Appointment confirmed!');
       } catch (error: unknown) {
+        // Use 'any' for error type for now
         console.error('Error creating appointment:', error);
         setErrorMessage('Failed to create appointment. Please try again.');
         setIsConfirming(false);
@@ -176,7 +141,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-2xl shadow-xl w-96 space-y-4">
         <h2 className="text-xl font-semibold">
-          Select appointment for <span className="text-blue-600">{doctor.displayName}</span>
+          Select appointment for <span className="text-blue-600">{doctor.name}</span>
         </h2>
 
         {errorMessage && (

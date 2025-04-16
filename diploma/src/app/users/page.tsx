@@ -6,12 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { onAuthStateChanged } from 'firebase/auth';
-
-interface UserType {
-  uid: string;
-  displayName: string;
-  photoURL: string;
-}
+import { UserType } from '@/interfaces/interfaces';
 
 const Users: FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -41,8 +36,14 @@ const Users: FC = () => {
           const data = doc.data();
           userList.push({
             uid: doc.id,
-            displayName: data.name,
+            name: data.name,
+            surname: data.surname,
+            phone: data.phone,
+            selectedAddress: data.selectedAddress,
+            role: data.role,
             photoURL: data.photoURL || '',
+            fields: data.fields,
+            availableSlots: data.availableSlots || [],
           });
         });
 
@@ -62,7 +63,7 @@ const Users: FC = () => {
     fetchUsers();
   }, []);
 
-  const filteredUsers = users.filter((user) => user.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredUsers = users.filter((user) => user.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) {
     return (
@@ -115,10 +116,10 @@ const Users: FC = () => {
                     className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition cursor-pointer border border-gray-100"
                   >
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
-                      <Image fill src={user.photoURL} alt={user.displayName} className="object-cover" />
+                      <Image fill src={user.photoURL} alt={user.name} className="object-cover" />
                     </div>
                     <div className="flex-1 text-center sm:text-left">
-                      <h3 className="font-semibold text-gray-900">{user.displayName}</h3>
+                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
                       <p className="text-sm text-gray-500">Available for consultation</p>
                     </div>
                     <button

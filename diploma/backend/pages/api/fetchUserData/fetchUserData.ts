@@ -1,22 +1,6 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebaseConfig';
-
-type AvailableSlot = { date: string; time: string[] };
-
-interface CustomUserData {
-  uid: string;
-  name: string;
-  surname: string;
-  phone: string;
-  selectedAddress: {
-    coordinates: [number, number];
-    id: string;
-    place_name: string;
-  };
-  role: string;
-  availableSlots: AvailableSlot[];
-  photoURL: string;
-}
+import { UserType } from '@/interfaces/interfaces';
 
 const fetchUserData = async (userId: string) => {
   try {
@@ -24,8 +8,7 @@ const fetchUserData = async (userId: string) => {
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
-      // Typecast the fetched data to the expected structure
-      return userSnap.data() as CustomUserData;
+      return userSnap.data() as UserType;
     } else {
       console.error('User document not found');
     }

@@ -1,30 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { Pencil, Trash } from 'lucide-react';
+import { AvailableTimePickerProps, Slot } from '@/interfaces/interfaces';
 
-interface Slot {
-  date: string;
-  time: string[];
-}
-
-interface AvailableTimePickerProps {
-  selectedDate: string;
-  selectedTime: string;
-  availableSlots: Slot[] | null; // Allow null for initial state
-  setSelectedDate: (date: string) => void;
-  setSelectedTime: (time: string) => void;
-  onUpdateAvailableSlots: (updatedSlots: Slot[]) => void;
-}
-
-const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
-  selectedDate,
-  selectedTime,
-  availableSlots,
-  setSelectedDate,
-  setSelectedTime,
-  onUpdateAvailableSlots,
-}) => {
+const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({ availableSlots, onUpdateAvailableSlots }) => {
   const [editingSlot, setEditingSlot] = useState<Slot | null>(null);
   const [editedTimes, setEditedTimes] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+
   const handleAddAvailableSlot = useCallback(() => {
     if (!selectedDate || !selectedTime) {
       console.warn('Please select both date and time.');

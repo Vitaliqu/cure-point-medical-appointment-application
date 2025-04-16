@@ -11,41 +11,15 @@ import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserDat
 import 'react-datepicker/dist/react-datepicker.css';
 import AppointmentModal from '@/components/AppointmentModal';
 import { onAuthStateChanged } from 'firebase/auth';
-interface AvailableSlot {
-  date: string;
-  time: string[];
-}
+import haversineDistance from '@/functions/haversineDistance';
+import { UserType, AddressProps } from '@/interfaces/interfaces';
 
-interface UserType {
-  uid: string;
-  displayName: string;
-  role: string;
-  photoURL: string;
-  coordinates: [number, number];
-  availableSlots: AvailableSlot[]; // поле для доступних слотів
+type ExtendedUserType = UserType & {
   distance?: number;
-}
-
-interface AddressProps {
-  coordinates: [number, number];
-  id: string;
-  place_name: string;
-}
-
-function haversineDistance(coords1: [number, number], coords2: [number, number]) {
-  const toRad = (x: number) => (x * Math.PI) / 180;
-  const [lat1, lon1] = coords1;
-  const [lat2, lon2] = coords2;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+};
 
 const Doctors: FC = () => {
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [users, setUsers] = useState<ExtendedUserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] = useState<AddressProps | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,16 +44,18 @@ const Doctors: FC = () => {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('role', '==', 'doctor'));
         const querySnapshot = await getDocs(q);
-        const userList: UserType[] = [];
+        const userList: ExtendedUserType[] = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-
           userList.push({
             uid: doc.id,
-            displayName: data.name,
+            name: data.name,
+            surname: data.surname,
+            phone: data.phone,
+            selectedAddress: data.selectedAddress,
             role: data.role,
             photoURL: data.photoURL || '',
-            coordinates: data.selectedAddress?.coordinates || [0, 0],
+            fields: data.fields,
             availableSlots: data.availableSlots || [],
           });
         });
@@ -89,7 +65,7 @@ const Doctors: FC = () => {
 
         if (selectedAddress) {
           filteredList.forEach((doctor) => {
-            doctor.distance = haversineDistance(selectedAddress.coordinates, doctor.coordinates);
+            doctor.distance = haversineDistance(selectedAddress.coordinates, doctor.selectedAddress.coordinates);
           });
 
           filteredList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
@@ -161,11 +137,11 @@ const Doctors: FC = () => {
                     className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition cursor-pointer border border-gray-100"
                   >
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
-                      <Image fill src={user.photoURL} alt={user.displayName} className="object-cover" />
+                      <Image fill src={user.photoURL} alt={user.name} className="object-cover" />
                     </div>
 
                     <div className="flex-1 text-center sm:text-left">
-                      <h3 className="font-semibold text-gray-900">{user.displayName}</h3>
+                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
 
                       <p className="text-sm text-gray-500">
                         {user.distance !== undefined ? `${user.distance.toFixed(1)} km away` : 'Distance unknown'}
