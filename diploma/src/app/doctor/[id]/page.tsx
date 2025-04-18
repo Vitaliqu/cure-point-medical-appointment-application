@@ -23,7 +23,7 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<UserType | null>(null);
-
+  console.log(isMapOpen);
   const updateDoctorAvailableSlots = async (doctorId: string, updatedAvailableSlots: Slot[]) => {
     try {
       const doctorRef = doc(db, 'users', doctorId);
@@ -153,7 +153,7 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
           )}
         </div>
       </div>
-      {selectedDoctor.selectedAddress?.coordinates && selectedAddress && isMapOpen && (
+      {selectedDoctor.selectedAddress?.coordinates && isMapOpen && (
         <div className="w-full md:max-w-md rounded-xl h-[532px] shadow-md overflow-hidden">
           <MapViewer users={[selectedDoctor]} currentAddress={selectedDoctor.selectedAddress} zoom={10} />
         </div>

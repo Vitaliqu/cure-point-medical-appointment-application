@@ -75,7 +75,7 @@ const Doctors: FC = () => {
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
-        if (selectedAddress) setLoading(false);
+        setLoading(false);
       }
     };
 
