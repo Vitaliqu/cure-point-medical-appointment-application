@@ -3,7 +3,7 @@
 import React, { FC, useEffect, useState } from 'react';
 import { User, Search, Pen } from 'lucide-react';
 import { db, auth } from '../../../backend/lib/firebaseConfig';
-import { collection, getDocs, query, where } from 'firebase/firestore'; // Import updateDoc and doc
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
@@ -75,7 +75,7 @@ const Doctors: FC = () => {
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
-        setLoading(false);
+        if (selectedAddress) setLoading(false);
       }
     };
 
@@ -137,7 +137,13 @@ const Doctors: FC = () => {
                     className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition cursor-pointer border border-gray-100"
                   >
                     <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
-                      <Image fill src={user.photoURL} alt={user.name} className="object-cover" />
+                      <Image
+                        onClick={() => router.push(`/doctor/${user.uid}`)}
+                        fill
+                        src={user.photoURL}
+                        alt={user.name}
+                        className="object-cover"
+                      />
                     </div>
 
                     <div className="flex-1 text-center sm:text-left">
@@ -170,7 +176,8 @@ const Doctors: FC = () => {
           onClose={() => setIsModalOpen(false)}
           setIsModalOpen={setIsModalOpen}
           setUsers={setUsers}
-          setSelectedDoctor={setSelectedDoctor}
+          setSelectedDoctor={null}
+          updateDoctorAvailableSlots={null}
         />
       )}
     </div>

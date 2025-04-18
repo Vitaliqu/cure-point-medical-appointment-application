@@ -1,16 +1,19 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { auth, db } from '../../../../backend/lib/firebaseConfig';
-import { and, collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth'; // Import User type from firebase
 import { useRouter } from 'next/navigation';
-import { Message } from '@/interfaces/interfaces';
+import { Message, UserType } from '@/interfaces/interfaces';
 import Chat from '@/components/Chat';
+import fetchUserData from '../../../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchAppointments from '../../../../backend/pages/api/fetchAppointments/fetchAppointments';
+import { and, collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 
-const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
-  const [id, setId] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null); // Use User type from Firebase
+  const [receiver, setReceiver] = useState<UserType | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]); // Use Message type
   const [userName, setUserName] = useState<string | null>(null);
   const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +23,7 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   useEffect(() => {
     const resolveParams = async () => {
       const resolvedParams = await params;
-      setId(resolvedParams.id);
+      setAppointmentId(resolvedParams.id);
     };
     resolveParams();
   }, [params]);
@@ -38,17 +41,18 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [router]);
 
   useEffect(() => {
-    if (!id || !user) return;
-
-    if (user.uid === id) {
-      console.warn("You can't message yourself.");
-      router.push('/users');
-      return;
-    }
-
-    const userRef = doc(db, 'users', id);
+    if (!appointmentId || !user) return;
 
     const init = async () => {
+      const currentAppointment = await fetchAppointments(appointmentId);
+      if (!currentAppointment) return;
+      const messageReceiver = await fetchUserData(
+        currentAppointment.doctorId === user.uid ? currentAppointment.patientId : currentAppointment.doctorId,
+      );
+      if (!messageReceiver) return;
+      setReceiver(messageReceiver);
+      const userRef = doc(db, 'users', messageReceiver.uid);
+
       try {
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
@@ -61,13 +65,12 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
         setUserName(name || null);
         setUserPhotoURL(photoURL || null);
 
-        const participantsKey = [user.uid, id].sort().join('_');
+        const participantsKey = [user.uid, messageReceiver.uid].sort().join('_');
         const messagesQuery = query(
           collection(db, 'directMessages'),
-          and(where('participantsKey', '==', participantsKey), where('appointmentId', '==', null)),
+          and(where('participantsKey', '==', participantsKey), where('appointmentId', '==', appointmentId)),
           orderBy('createdAt'),
         );
-
         return onSnapshot(messagesQuery, (snapshot) => {
           const liveMessages = snapshot.docs.map((doc) => ({
             id: doc.id,
@@ -91,7 +94,7 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
     return () => {
       if (unsubFn) unsubFn();
     };
-  }, [user, id, router]);
+  }, [user, receiver?.uid, router, appointmentId]);
 
   useEffect(() => {
     if (!loading) {
@@ -101,20 +104,16 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-4">
-      <button onClick={() => router.push('/users')} className="bg-blue-500 text-white px-4 py-2 rounded mb-4">
-        Back to Users List
-      </button>
-
       <Chat
         messages={messages}
         loading={loading}
         user={user}
-        recipientId={id || ''}
+        recipientId={receiver?.uid || ''}
         userName={userName}
         userPhotoURL={userPhotoURL}
-        appointmentId={null}
+        appointmentId={appointmentId}
       />
     </div>
   );
 };
-export default DirectMessage;
+export default Appointment_Chat;

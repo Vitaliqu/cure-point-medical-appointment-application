@@ -34,24 +34,34 @@ export interface Appointment {
   doctorName: string;
   patientId: string;
   patientName: string;
-  date: Timestamp;
+  date: Date;
   createdAt: Timestamp;
   status?: 'pending' | 'approved' | 'declined';
 }
-
+export interface ChatProps {
+  messages: Message[];
+  loading: boolean;
+  user: { uid: string } | null;
+  recipientId: string;
+  userName: string | null;
+  userPhotoURL: string | null;
+  appointmentId: string | null;
+}
 export interface Message {
   id: string;
   text: string;
   participants: string[];
   createdAt: Timestamp;
+  appointmentId: string | null;
 }
 
 export interface AppointmentModalProps {
   doctor: UserType | null;
   onClose: () => void;
   setIsModalOpen: (state: boolean) => void;
-  setUsers: React.Dispatch<React.SetStateAction<UserType[]>>;
-  setSelectedDoctor: (doctor: UserType | null) => void;
+  setUsers: React.Dispatch<React.SetStateAction<UserType[]>> | null;
+  setSelectedDoctor: ((doctor: UserType | null) => void) | null;
+  updateDoctorAvailableSlots: ((doctorId: string, updatedAvailableSlots: Slot[]) => void) | null;
 }
 
 export interface FeatureProperties {

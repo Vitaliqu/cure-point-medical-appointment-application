@@ -45,12 +45,12 @@ const Header = () => {
       } md:h-16`}
     >
       <div className="flex w-full flex-row px-4 md:px-16 items-center justify-between">
-        <div onClick={() => router.push('/home')} className="flex items-center gap-2 cursor-pointer">
+        <div onClick={() => router.push('/home')} className="flex flex-1  items-center gap-2 cursor-pointer">
           <Heart className="text-blue-500 w-6 h-6" />
           <h1 className="text-xl font-black text-blue-500">MedConnect</h1>
         </div>
 
-        <nav className="hidden md:flex items-center space-x-6 text-sm lg:text-lg">
+        <nav className="hidden md:flex-1 justify-center md:flex items-center space-x-6 text-sm lg:text-lg">
           {navItems.slice(0, 4).map(({ label, path }) => (
             <div
               key={label}
@@ -62,10 +62,10 @@ const Header = () => {
           ))}
         </nav>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-1 justify-end items-center space-x-4">
           {!isAuthenticated && (
             <>
-              <div className={'hidden md:flex items-center space-x-4'}>
+              <div className={'hidden md:flex fj items-center space-x-4'}>
                 <div
                   onClick={() => router.push('/authorisation')}
                   className="text-blue-500 cursor-pointer hover:text-blue-700 transition-colors"

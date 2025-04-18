@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { auth, db } from '../../backend/lib/firebaseConfig';
-import { addDoc, collection, doc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import fetchUserData from '../../backend/pages/api/fetchUserData/fetchUserData';
 import { UserType, AppointmentModalProps } from '@/interfaces/interfaces';
@@ -13,6 +13,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   setIsModalOpen,
   setUsers,
   setSelectedDoctor,
+  updateDoctorAvailableSlots,
 }) => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
@@ -20,12 +21,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-  // Fetch user data on auth state change
+
+  // Fetch user data on authentication state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         const userData = await fetchUserData(currentUser.uid);
-        if (userData) setUser(userData);
+        setUser(userData || null);
       } else {
         setUser(null);
       }
@@ -33,7 +35,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     return () => unsubscribe();
   }, []);
 
-  // Clear error message after delay
+  // Clear error message after a delay
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => setErrorMessage(null), 3000);
@@ -41,31 +43,34 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     }
   }, [errorMessage]);
 
-  // Success message and close modal
+  // Handle success message and modal closure
   useEffect(() => {
     if (successMessage) {
       setIsConfirming(true);
       const timer = setTimeout(() => {
         setIsModalOpen(false);
         setAppointmentDate(null);
-        setSelectedDoctor(null);
+        if (setSelectedDoctor) setSelectedDoctor(null);
         setSuccessMessage(null);
         setIsConfirming(false);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [successMessage, setIsModalOpen, setAppointmentDate, setSelectedDoctor]);
+  }, [successMessage, setIsModalOpen, setSelectedDoctor]);
 
+  // Sort available slots by date using useMemo
   const sortedAvailableSlots = useMemo(
     () => [...(doctor?.availableSlots || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
     [doctor?.availableSlots],
   );
 
+  // Handle slot selection using useCallback
   const handleSelect = useCallback((date: string, time: string) => {
     setSelectedSlot({ date, time });
     setAppointmentDate(new Date(`${date}T${time}`));
   }, []);
 
+  // Handle appointment confirmation using useCallback
   const handleConfirmAppointment = useCallback(
     async (slot: { date: string; time: string } | null) => {
       if (!appointmentDate || !doctor || !auth.currentUser || !slot) {
@@ -79,17 +84,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
       const { date: formattedDate, time: selectedTime } = slot;
 
       try {
-        const doctorSnapshot = await getDocs(
-          query(collection(db, 'users'), where('role', '==', 'doctor'), where('uid', '==', doctor.uid)),
-        );
-
-        if (doctorSnapshot.empty) {
-          setErrorMessage('Error: Doctor not found. Please try again.');
+        // Directly use the passed doctor data if available
+        const doctorData = doctor;
+        if (!doctorData) {
+          setErrorMessage('Error: Doctor data not available. Please try again.');
           setIsConfirming(false);
           return;
         }
-
-        const doctorData = doctorSnapshot.docs[0].data() as UserType;
 
         const isSlotAvailable = doctorData.availableSlots?.some(
           (s) => s.date === formattedDate && s.time.includes(selectedTime),
@@ -101,38 +102,44 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
           return;
         }
 
-        await addDoc(collection(db, 'appointments'), {
+        const appointmentData = {
           doctorId: doctor.uid,
-          doctorName: doctor.name, // Ensure doctor.name is defined
+          doctorName: doctor.name,
           patientId: auth.currentUser.uid,
           patientName: user?.name,
           date: Timestamp.fromDate(appointmentDate),
           time: selectedTime,
           createdAt: Timestamp.now(),
           status: 'pending',
-        });
+        };
+        await addDoc(collection(db, 'appointments'), appointmentData);
 
         const doctorRef = doc(db, 'users', doctor.uid);
-        if (!doctorData.availableSlots) return;
-        const updatedAvailableSlots = doctorData.availableSlots
+        const currentAvailableSlots = doctorData.availableSlots || [];
+        const updatedAvailableSlots = currentAvailableSlots
           .map((s) => (s.date === formattedDate ? { ...s, time: s.time.filter((t) => t !== selectedTime) } : s))
           .filter((s) => s.time.length > 0);
 
         await updateDoc(doctorRef, { availableSlots: updatedAvailableSlots });
 
-        setUsers((prevUsers) =>
-          prevUsers.map((d) => (d.uid === doctor.uid ? { ...d, availableSlots: updatedAvailableSlots } : d)),
-        );
+        // Optimistic update of the local state
+        if (setUsers) {
+          setUsers((prevUsers) =>
+            prevUsers.map((d) => (d.uid === doctor.uid ? { ...d, availableSlots: updatedAvailableSlots } : d)),
+          );
+        }
+        if (updateDoctorAvailableSlots) {
+          setTimeout(() => updateDoctorAvailableSlots(doctor.uid, updatedAvailableSlots), 2000);
+        }
 
         setSuccessMessage('Appointment confirmed!');
       } catch (error: unknown) {
-        // Use 'any' for error type for now
         console.error('Error creating appointment:', error);
         setErrorMessage('Failed to create appointment. Please try again.');
         setIsConfirming(false);
       }
     },
-    [appointmentDate, doctor, setUsers, user?.name],
+    [appointmentDate, doctor, setUsers, user?.name, updateDoctorAvailableSlots],
   );
 
   if (!doctor) return null;
@@ -162,11 +169,12 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
           {sortedAvailableSlots.length > 0 ? (
             sortedAvailableSlots.map(({ date, time }) => {
               const formattedDate = new Date(date);
-              formattedDate.setDate(formattedDate.getDate() + 1);
+              // Consider if adding 1 day here is always the desired behavior
+              const displayDate = formattedDate.toLocaleDateString();
 
               return (
                 <div key={date}>
-                  <p className="font-medium mb-1">{formattedDate.toDateString()}</p>
+                  <p className="font-medium mb-1">{displayDate}</p>
                   <div className="flex flex-wrap gap-2">
                     {Array.isArray(time) && time.length > 0 ? (
                       time.map((t) => {
