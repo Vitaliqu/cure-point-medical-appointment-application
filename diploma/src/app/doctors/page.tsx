@@ -7,7 +7,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
-import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
 import 'react-datepicker/dist/react-datepicker.css';
 import AppointmentModal from '@/components/AppointmentModal';
 import { onAuthStateChanged } from 'firebase/auth';

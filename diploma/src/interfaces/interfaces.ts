@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
+import { useRouter } from 'next/navigation';
 
 export interface Slot {
   date: string;
@@ -83,4 +84,29 @@ export interface Feature {
 export interface GeoJSON {
   type: 'FeatureCollection';
   features: Feature[];
+}
+export interface PaymentData {
+  appointmentId: string;
+  doctorId: string;
+  patientId: string;
+  amount: number;
+  status: 'pending' | 'paid';
+  createdAt: Date;
+}
+
+export interface RenderAppointmentsListProps {
+  currentUser: UserType;
+  users: UserType[];
+  activeTab: 'active' | 'history';
+  payments: PaymentData[];
+  setPayments: Dispatch<SetStateAction<PaymentData[]>>;
+  selectedDate: Date | null;
+}
+export interface PaymentHandlerProps {
+  currentUser: UserType;
+  paymentAmount: number;
+  router: ReturnType<typeof useRouter>;
+  onError: (errorMessage: string) => void;
+  onSuccess: (successMessage: string) => void;
+  setPayments: Dispatch<SetStateAction<PaymentData[]>>;
 }

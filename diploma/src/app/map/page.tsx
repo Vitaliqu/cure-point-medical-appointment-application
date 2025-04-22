@@ -5,8 +5,8 @@ import mapboxgl, { Map } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../../backend/lib/firebaseConfig';
-import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
-import fetchUsersData from '../../../backend/pages/api/fetchUsersData/fetchUsersData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
+import fetchUsersData from '@/app/api/fetchUsersData/fetchUsersData';
 import { useRouter } from 'next/navigation';
 import { GeoJSON, UserType } from '@/interfaces/interfaces';
 
@@ -76,19 +76,19 @@ const MapboxExample: React.FC = () => {
 
       el.className = 'marker';
       el.style.cssText = `
-        background-image: url(${marker.properties.image}/${width}/${height});
-        width: ${width}px;
-        height: ${height}px;
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        border: 2px solid #000;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      `;
+  background-image: url(${marker.properties.image});
+  width: ${width}px;
+  height: ${height}px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 2px solid #000;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 
       el.addEventListener('click', () => {
         if (marker.properties.uid !== currentUserData.uid) {

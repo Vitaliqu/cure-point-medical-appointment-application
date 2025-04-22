@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { auth, db } from '../../backend/lib/firebaseConfig';
 import { addDoc, collection, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
 import { UserType, AppointmentModalProps } from '@/interfaces/interfaces';
 
 const AppointmentModal: React.FC<AppointmentModalProps> = ({
@@ -43,7 +43,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     }
   }, [errorMessage]);
 
-  // Handle success message and modal closure
+  // Handle payment-success message and modal closure
   useEffect(() => {
     if (successMessage) {
       setIsConfirming(true);

@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../backend/lib/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
 
 const Header = () => {
   const router = useRouter();

@@ -1,0 +1,10 @@
+[lcl-host]
+realm-apid = 'localhost'
+
+[org]
+apid = 'vitaliqu'
+
+[service]
+apid = 'diploma'
+category = 'javascript'
+cert-style = 'acme'

@@ -1,4 +1,4 @@
-import { db } from '@/../backend/lib/firebaseConfig';
+import { db } from '../../../backend/lib/firebaseConfig';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { Message } from '@/interfaces/interfaces';
 

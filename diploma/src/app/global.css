@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Special+Gothic&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Special+Gothic&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,4 +8,6 @@ html, body {
     font-family: "Special Gothic", sans-serif;    font-optical-sizing: auto;
     font-style: normal;
     font-weight: 400;
+    margin: 0;
+    padding: 0;
 }

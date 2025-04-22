@@ -1,6 +1,6 @@
 // utils/login.ts
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth } from '../../../lib/firebaseConfig';
+import { auth } from '../../../../backend/lib/firebaseConfig';
 
 export const loginUser = async (email: string, password: string) => {
   try {

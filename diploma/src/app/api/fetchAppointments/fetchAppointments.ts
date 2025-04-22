@@ -1,5 +1,5 @@
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebaseConfig';
+import { db } from '../../../../backend/lib/firebaseConfig';
 import { Appointment } from '@/interfaces/interfaces';
 
 const fetchAppointmentData = async (appointmentId: string) => {

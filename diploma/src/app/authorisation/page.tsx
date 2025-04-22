@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react';
 import { auth } from '../../../backend/lib/firebaseConfig';
-import { loginUser } from '../../../backend/pages/api/auth/login';
+import { loginUser } from '@/app/api/auth/login';
 import { useRouter } from 'next/navigation';
 
 function Authorisation() {

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { auth, db } from '../../../../backend/lib/firebaseConfig';
 import Image from 'next/image';
-import fetchUserData from '../../../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
 import 'react-datepicker/dist/react-datepicker.css';
 import AppointmentModal from '@/components/AppointmentModal';
 import haversineDistance from '@/functions/haversineDistance';

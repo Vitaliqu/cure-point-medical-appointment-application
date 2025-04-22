@@ -1,5 +1,5 @@
 import { setDoc, doc } from 'firebase/firestore';
-import { auth, db, storage } from '../../../lib/firebaseConfig';
+import { auth, db, storage } from '../../../../backend/lib/firebaseConfig';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 type AvailableSlot = {

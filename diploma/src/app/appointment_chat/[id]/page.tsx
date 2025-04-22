@@ -5,8 +5,8 @@ import { onAuthStateChanged, User } from 'firebase/auth'; // Import User type fr
 import { useRouter } from 'next/navigation';
 import { Message, UserType } from '@/interfaces/interfaces';
 import Chat from '@/components/Chat';
-import fetchUserData from '../../../../backend/pages/api/fetchUserData/fetchUserData';
-import fetchAppointments from '../../../../backend/pages/api/fetchAppointments/fetchAppointments';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
+import fetchAppointments from '@/app/api/fetchAppointments/fetchAppointments';
 import { and, collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 
 const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {

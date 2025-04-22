@@ -5,7 +5,7 @@ import { auth, db, storage } from '../../../backend/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '../../../backend/pages/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
