@@ -217,7 +217,7 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
         </div>
       )}
       {isPaymentModalOpen && modalPaymentAmount && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50 -left-2 m-0">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex overflow-scroll justify-center items-center z-50 -left-2 m-0">
           <StripePayment
             amount={modalPaymentAmount}
             setIsPaymentModalOpen={setIsPaymentModalOpen}

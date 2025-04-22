@@ -24,7 +24,7 @@ const useCancelPaymentHandler = ({ currentUser, router, onError, onSuccess, setP
           return;
         }
 
-        if (currentUser.uid !== appointment.patientId) {
+        if (currentUser.uid !== appointment.doctorId) {
           onError('Only the doctor can delete the payment record');
           return;
         }

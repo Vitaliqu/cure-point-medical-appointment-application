@@ -61,10 +61,10 @@ const StripePayment: React.FC<StripePaymentProps> = ({ amount, setIsPaymentModal
   };
 
   return (
-    <main className="relative max-w-4xl w-full mx-auto p-10 text-white text-center border m-10 rounded-md bg-gradient-to-tr from-blue-500 to-purple-500">
+    <main className="relative mt-32 max-w-4xl w-full mx-auto p-10 text-white text-center border m-10 rounded-md bg-gradient-to-tr from-blue-500 to-purple-500">
       {/* Close Button */}
       <button
-        className="absolute top-3 right-3 text-white hover:text-red-300 text-4xl font-bold focus:outline-none"
+        className="absolute top-2 right-6 text-white hover:text-red-300 text-6xl font-bold focus:outline-none"
         onClick={() => setIsPaymentModalOpen(false)}
         aria-label="Close payment modal"
       >
