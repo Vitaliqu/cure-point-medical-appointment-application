@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/../backend/lib/firebaseConfig';
-import { Appointment, PaymentHandlerProps, PaymentData } from '@/interfaces/interfaces';
+import { Appointment, PaymentHandlerProps } from '@/interfaces/interfaces';
 
 const useEditPaymentHandler = ({
   currentUser,

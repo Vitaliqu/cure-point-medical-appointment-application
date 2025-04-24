@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import useFetchClientSecret from '../../hooks/useFetchClientSecret';
 
 interface CheckoutPageProps {
   amount: number;
   onPaymentSuccess: () => void;
 }
-
-const convertToSubcurrency = (amount: number, factor = 100): number => Math.round(amount * factor);
 
 const CheckoutPage = ({ amount, onPaymentSuccess }: CheckoutPageProps) => {
   const stripe = useStripe();
@@ -17,40 +16,27 @@ const CheckoutPage = ({ amount, onPaymentSuccess }: CheckoutPageProps) => {
   const [clientSecret, setClientSecret] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPaymentCompleted, setHasPaymentCompleted] = useState(false);
-
-  const fetchClientSecret = useCallback(async () => {
-    try {
-      const response = await fetch('/api/checkout-sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount: convertToSubcurrency(amount) }),
-      });
-      const data = await response.json();
-      setClientSecret(data.clientSecret);
-    } catch (error: unknown) {
-      console.error('Error fetching client secret:', error);
-      setErrorMessage('Failed to initialize payment.');
-    }
-  }, [amount]);
+  const { useClientSecret: fetchedClientSecret, useErrorMessage: fetchedErrorMessage } = useFetchClientSecret({
+    amount,
+  });
 
   useEffect(() => {
-    fetchClientSecret();
-  }, [fetchClientSecret]);
-
+    if (fetchedClientSecret) {
+      setClientSecret(fetchedClientSecret);
+    }
+    if (fetchedErrorMessage) {
+      setErrorMessage(fetchedErrorMessage);
+    }
+  }, [fetchedClientSecret]);
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!stripe || !elements || !clientSecret || isSubmitting) {
-      return;
-    }
+    if (!stripe || !elements || !clientSecret || isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage(undefined);
 
     const { error: submitError } = await elements.submit();
-
     if (submitError) {
       setErrorMessage(submitError.message);
       setIsSubmitting(false);
@@ -60,7 +46,7 @@ const CheckoutPage = ({ amount, onPaymentSuccess }: CheckoutPageProps) => {
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret,
-      confirmParams: { return_url: window.location.origin }, // Use current origin for redirect
+      confirmParams: { return_url: window.location.origin },
       redirect: 'if_required',
     });
 
@@ -103,7 +89,7 @@ const CheckoutPage = ({ amount, onPaymentSuccess }: CheckoutPageProps) => {
     <form onSubmit={handleSubmit} className="bg-white p-2 rounded-md">
       <PaymentElement />
 
-      {errorMessage && <div className="text-red-500 mt-2">{errorMessage}</div>}
+      {errorMessage && <div className="text-red-500 mt-2 ml-1">{errorMessage}</div>}
 
       <button
         type="submit"

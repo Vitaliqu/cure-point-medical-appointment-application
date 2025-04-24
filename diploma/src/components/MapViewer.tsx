@@ -54,10 +54,10 @@ const MapViewer = ({
 
       el.className = 'marker';
       el.style.cssText = `
-        background-image: url(${marker.properties.image}/${width}/${height});
+        background-image: url(${marker.properties.image});
         width: ${width}px;
         height: ${height}px;
-        background-size: contain;
+        background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         border: 2px solid #000;

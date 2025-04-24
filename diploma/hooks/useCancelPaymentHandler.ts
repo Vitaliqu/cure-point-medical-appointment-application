@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore'; // Import DocumentSnapshot and DocumentData
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/../backend/lib/firebaseConfig';
-import { Appointment, PaymentHandlerProps, PaymentData } from '@/interfaces/interfaces'; // Assuming you have a Payment interface
+import { Appointment, PaymentHandlerProps, PaymentData } from '@/interfaces/interfaces';
 
 const useCancelPaymentHandler = ({ currentUser, router, onError, onSuccess, setPayments }: PaymentHandlerProps) => {
   return useCallback(
@@ -13,7 +13,7 @@ const useCancelPaymentHandler = ({ currentUser, router, onError, onSuccess, setP
         const paymentSnapshot = await getDoc(paymentRef);
 
         if (paymentSnapshot.exists()) {
-          const paymentData = paymentSnapshot.data() as PaymentData; // Cast the data to your Payment interface
+          const paymentData = paymentSnapshot.data() as PaymentData;
 
           if (paymentData?.status === 'paid') {
             onError('Cannot delete a paid payment record.');

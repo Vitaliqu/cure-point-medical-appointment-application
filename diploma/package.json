@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.2",
     "@mapbox/mapbox-gl-geocoder": "^5.0.3",
     "@mapbox/search-js-react": "^1.0.0",
     "@react-google-maps/api": "^2.20.6",
@@ -29,7 +30,8 @@
     "react-datepicker": "^8.3.0",
     "react-dom": "^19.0.0",
     "react-select": "^5.10.1",
-    "stripe": "^18.0.0"
+    "stripe": "^18.0.0",
+    "uuid": "^11.1.0"
   },
   "resolutions": {
     "@types/react": "17.0.14",

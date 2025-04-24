@@ -98,18 +98,14 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
       dummy.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [loading, messages]);
-
+  if (!id) return;
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-4">
-      <button onClick={() => router.push('/users')} className="bg-blue-500 text-white px-4 py-2 rounded mb-4">
-        Back to Users List
-      </button>
-
+    <div className="max-w-2xl h-full mx-auto mt-10 md:p-4">
       <Chat
         messages={messages}
         loading={loading}
         user={user}
-        recipientId={id || ''}
+        recipientId={id}
         userName={userName}
         userPhotoURL={userPhotoURL}
         appointmentId={null}

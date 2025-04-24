@@ -49,11 +49,17 @@ export interface ChatProps {
   appointmentId: string | null;
 }
 export interface Message {
-  id: string;
-  text: string;
+  id?: string;
+  text?: string | null;
+  imageUrl?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  type: 'text' | 'image' | 'file';
   participants: string[];
+  participantsKey: string;
   createdAt: Timestamp;
-  appointmentId: string | null;
+  appointmentId?: string | null;
+  senderId: string;
 }
 
 export interface AppointmentModalProps {
