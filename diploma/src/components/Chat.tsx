@@ -164,9 +164,10 @@ const Chat: React.FC<ChatProps> = ({ messages, loading, user, recipientId, userN
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="flex-1 border rounded-full px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
           placeholder="Type a message..."
         />
+
         {/* Centered the send icon */}
         <button
           type="submit"

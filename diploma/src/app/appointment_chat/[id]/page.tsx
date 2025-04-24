@@ -103,7 +103,7 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [loading, messages]);
 
   return (
-    <div className="max-w-2xl h-[calc(100dvh-4rem)] max-h-[64rem] mx-auto mt-10 md:p-4">
+    <div className="max-w-2xl h-[calc(100dvh-4rem)] overflow-hidden max-h-[64rem] mx-auto mt-10 md:p-4">
       <Chat
         messages={messages}
         loading={loading}
