@@ -21,6 +21,16 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
   const dummy = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Add overflow hidden when component mounts
+    document.body.style.overflow = 'hidden';
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
     const resolveParams = async () => {
       const resolvedParams = await params;
       setAppointmentId(resolvedParams.id);
