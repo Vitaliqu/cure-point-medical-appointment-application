@@ -21,16 +21,6 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
   const dummy = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Add overflow hidden when component mounts
-    document.body.style.overflow = 'hidden';
-
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
-  useEffect(() => {
     const resolveParams = async () => {
       const resolvedParams = await params;
       setAppointmentId(resolvedParams.id);
@@ -113,18 +103,16 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [loading, messages]);
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden">
-      <div className="max-w-2xl w-full h-[calc(100dvh-4rem)] overflow-hidden max-h-[64rem] mt-16 md:p-4">
-        <Chat
-          messages={messages}
-          loading={loading}
-          user={user}
-          recipientId={receiver?.uid || ''}
-          userName={userName}
-          userPhotoURL={userPhotoURL}
-          appointmentId={appointmentId}
-        />
-      </div>
+    <div className="max-w-2xl h-[calc(100dvh-4rem)] overflow-hidden max-h-[64rem] mx-auto mt-10 md:p-4">
+      <Chat
+        messages={messages}
+        loading={loading}
+        user={user}
+        recipientId={receiver?.uid || ''}
+        userName={userName}
+        userPhotoURL={userPhotoURL}
+        appointmentId={appointmentId}
+      />
     </div>
   );
 };

@@ -16,6 +16,19 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const dummy = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    document.body.style.position = 'fixed';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.position = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   useEffect(() => {
     const resolveParams = async () => {

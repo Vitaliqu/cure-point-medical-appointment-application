@@ -113,7 +113,7 @@ const Chat: React.FC<ChatProps> = ({ messages, loading, user, recipientId, userN
   }, [loading, messages]);
 
   return (
-    <div className="flex flex-col shadow-2xl h-full">
+    <div className="flex flex-col shadow-xl h-full">
       <div className="border-b py-3 px-4 flex items-center shadow-sm">
         <h2 className="font-semibold text-lg">Chat with {userName}</h2>
       </div>
