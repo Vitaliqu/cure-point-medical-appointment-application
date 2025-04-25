@@ -37,7 +37,7 @@ export interface Appointment {
   patientName: string;
   date: Date;
   createdAt: Timestamp;
-  status?: 'pending' | 'approved' | 'declined';
+  status?: 'pending' | 'approved' | 'declined' | 'finished';
 }
 export interface ChatProps {
   messages: Message[];

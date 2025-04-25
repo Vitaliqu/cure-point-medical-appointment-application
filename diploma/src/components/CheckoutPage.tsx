@@ -27,7 +27,7 @@ const CheckoutPage = ({ amount, onPaymentSuccess }: CheckoutPageProps) => {
     if (fetchedErrorMessage) {
       setErrorMessage(fetchedErrorMessage);
     }
-  }, [fetchedClientSecret]);
+  }, [fetchedClientSecret, fetchedErrorMessage]);
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 

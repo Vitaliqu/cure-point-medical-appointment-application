@@ -16,19 +16,6 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const dummy = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    document.body.style.position = 'fixed';
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.position = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-    };
-  }, []);
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -113,7 +100,7 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [loading, messages]);
   if (!id) return;
   return (
-    <div className="max-w-2xl h-[calc(100dvh-4rem)] overflow-hidden max-h-[64rem] mx-auto mt-10 md:p-4">
+    <div className="max-w-2xl h-[calc(100dvh-4rem)] max-h-[64rem] mx-auto mt-10 md:p-4">
       <Chat
         messages={messages}
         loading={loading}

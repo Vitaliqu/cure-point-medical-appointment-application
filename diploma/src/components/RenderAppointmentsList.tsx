@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import useApproveHandler from '@/../hooks/useApproveHandler';
 import useDeclineHandler from '@/../hooks/useDeclineHandler';
 import useCreatePaymentHandler from '../../hooks/useCreatePaymentHandler';
-import { collection, getDocs, or, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../backend/lib/firebaseConfig';
 import useEditPaymentHandler from '../../hooks/useEditPaymentHandler';
 import useCancelPaymentHandler from '../../hooks/useCancelPaymentHandler';
@@ -90,7 +90,18 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
     router,
     setPayments,
   });
-
+  const finishAppointment = async (appointmentId: string) => {
+    try {
+      const appointmentRef = doc(db, 'appointments', appointmentId);
+      await updateDoc(appointmentRef, { status: 'finished' });
+      fetchAppointments(currentUser, selectedDate);
+      setPaymentSuccess('Appointment finished successfully!');
+      setTimeout(() => setPaymentSuccess(null), 3000);
+    } catch (err: unknown) {
+      setPaymentError(`Failed to finish appointment! ${err}`);
+      setTimeout(() => setPaymentError(null), 3000);
+    }
+  };
   const fetchAppointments = useCallback(
     async (currentUser: UserType | null, selectedDate: Date | null) => {
       if (!currentUser) return;
@@ -115,8 +126,22 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
         const filteredByDate = selectedDate
           ? fetchedAppointments.filter((appt) => appt.date.getDate() === selectedDate.getDate() + 1)
           : fetchedAppointments;
-        setActiveAppointments(filteredByDate.filter((appt) => appt.status === 'pending' || appt.status === 'approved'));
-        setPastAppointments(filteredByDate.filter((appt) => appt.status === 'declined'));
+        const sortedAppointments = filteredByDate.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          if (a.status === 'approved' && (b.status === 'declined' || b.status === 'finished')) return -1;
+          if ((a.status === 'declined' || a.status === 'finished') && b.status === 'approved') return 1;
+          if (a.status === 'declined' && b.status === 'finished') return 1;
+          if (a.status === 'finished' && b.status === 'declined') return -1;
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+
+        setActiveAppointments(
+          sortedAppointments.filter((appt) => appt.status === 'pending' || appt.status === 'approved'),
+        );
+        setPastAppointments(
+          sortedAppointments.filter((appt) => appt.status === 'declined' || appt.status === 'finished'),
+        );
       } catch (error) {
         console.error('Error fetching appointments:', error);
       } finally {
@@ -281,6 +306,11 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
                       Declined
                     </span>
                   )}
+                  {appointment.status === 'finished' && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                      Finished
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2">
                   {location && (
@@ -355,7 +385,8 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
                         </button>
                       </>
                     )}
-                  {appointment.status === 'approved' && (
+
+                  {(appointment.status === 'approved' || appointment.status === 'finished') && (
                     <button
                       onClick={() => router.push(`/appointment_chat/${appointment.id}`)}
                       className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -363,10 +394,18 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
                       Chat
                     </button>
                   )}
+                  {isDoctor && appointment.status === 'approved' && (
+                    <button
+                      onClick={() => finishAppointment(appointment.id)}
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Finish Appointment
+                    </button>
+                  )}
                   {!paymentForAppointment &&
                     isDoctor &&
                     appointment.doctorId === currentUser?.uid &&
-                    appointment.status === 'approved' && (
+                    (appointment.status === 'approved' || appointment.status === 'finished') && (
                       <button
                         onClick={() => {
                           setAmountInput(0);
@@ -382,7 +421,7 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
               </div>
 
               {isModalOpen && selectedAppointment && (
-                <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50 -left-2 m-0">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10">
                   <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">
                       {isEditing ? 'Edit Payment Amount' : 'Set Payment Amount'}
@@ -399,7 +438,7 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
                           type="number"
                           name="amount"
                           id="amount"
-                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 py-3 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
                           placeholder="0.00"
                           value={amountInput}
                           onChange={(e) => setAmountInput(Number(e.target.value))}

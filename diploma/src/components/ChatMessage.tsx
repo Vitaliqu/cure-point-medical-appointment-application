@@ -78,29 +78,24 @@ const ChatMessage: FC<Props> = ({ message, currentUid, userName, userPhotoURL })
 
       {isModalOpen && imageUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80"
+          className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black bg-opacity-80"
           onClick={() => setIsModalOpen(false)}
         >
-          <div
-            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-scroll rounded-lg shadow-xl bg-white"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative rounded-lg shadow-xl bg-white" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 transition-colors"
+              className="absolute top-2 right-2 text-white bg-gray-800 size-8 flex justify-center items-center   hover:bg-black transition-colors z-10 rounded-full p-1"
             >
               ✕
             </button>
-            <div className="p-4">
-              <Image
-                src={imageUrl}
-                alt="Full Image"
-                width={0}
-                height={0}
-                sizes="100vw"
-                className="w-full h-auto object-contain"
-              />
-            </div>
+            <Image
+              src={imageUrl}
+              alt="Full Image"
+              width={0}
+              height={0}
+              sizes="100vw"
+              className="h-auto w-auto max-w-screen max-h-screen object-contain"
+            />
           </div>
         </div>
       )}
