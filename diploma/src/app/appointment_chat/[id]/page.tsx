@@ -85,7 +85,7 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
         setLoading(false);
       }
     };
-
+    console.log(messages);
     let unsubFn: (() => void) | undefined;
     init().then((unsub) => {
       unsubFn = unsub;

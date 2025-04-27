@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { addDoc, collection, Timestamp, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import ChatMessage from './ChatMessage';
 import { Upload, Paperclip, Send, X } from 'lucide-react';
@@ -50,8 +50,6 @@ const Chat: React.FC<ChatProps> = ({
   const [tabValue, setTabValue] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [mediaFiles, setMediaFiles] = useState<Message[]>([]);
-  const [otherFiles, setOtherFiles] = useState<Message[]>([]);
   useEffect(() => {
     if (tabValue === 0) {
       document.body.style.position = 'fixed';
@@ -70,46 +68,6 @@ const Chat: React.FC<ChatProps> = ({
     setMessages(initialMessages);
     setLoading(initialLoading);
   }, [initialMessages, initialLoading]);
-
-  useEffect(() => {
-    if (!user || !recipientId) return;
-
-    const participantsKey = [user.uid, recipientId].sort().join('_');
-    const mediaQuery = query(
-      collection(db, 'directMessages'),
-      where('participantsKey', '==', participantsKey),
-      where('type', 'in', ['image']),
-      orderBy('createdAt', 'desc'),
-    );
-
-    const unsubscribeMedia = onSnapshot(mediaQuery, (snapshot) => {
-      const media: Message[] = [];
-      snapshot.forEach((doc) => {
-        media.push(doc.data() as Message);
-      });
-      setMediaFiles(media);
-    });
-
-    const filesQuery = query(
-      collection(db, 'directMessages'),
-      where('participantsKey', '==', participantsKey),
-      where('type', 'not-in', ['text', 'image']),
-      orderBy('createdAt', 'desc'),
-    );
-
-    const unsubscribeFiles = onSnapshot(filesQuery, (snapshot) => {
-      const files: Message[] = [];
-      snapshot.forEach((doc) => {
-        files.push(doc.data() as Message);
-      });
-      setOtherFiles(files);
-    });
-
-    return () => {
-      unsubscribeMedia();
-      unsubscribeFiles();
-    };
-  }, [user, recipientId]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -269,26 +227,28 @@ const Chat: React.FC<ChatProps> = ({
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <div className="grid grid-cols-2 h-[calc(100dvh-4rem)] overflow-y-scroll sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
-          {mediaFiles.length > 0 ? (
-            mediaFiles.map((media, index) => (
-              <div key={index} className="relative rounded-md shadow-md overflow-hidden">
-                {media.imageUrl && (
-                  <Image
-                    onClick={() => {
-                      setIsModalOpen(true);
-                      if (media.imageUrl) setSelectedImageUrl(media.imageUrl);
-                      else return;
-                    }}
-                    src={media.imageUrl}
-                    alt={media.fileName || 'Media'}
-                    width={200}
-                    height={200}
-                    className="object-cover cursor-pointer w-full h-full"
-                  />
-                )}
-              </div>
-            ))
+        <div className="grid grid-cols-2 overflow-y-scroll sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+          {messages.filter((message) => message.type === 'image').length > 0 ? (
+            messages
+              .filter((message) => message.type === 'image')
+              .map((media, index) => (
+                <div key={index} className="relative rounded-md shadow-md overflow-hidden">
+                  {media.imageUrl && (
+                    <Image
+                      onClick={() => {
+                        setIsModalOpen(true);
+                        if (media.imageUrl) setSelectedImageUrl(media.imageUrl);
+                        else return;
+                      }}
+                      src={media.imageUrl}
+                      alt={media.fileName || 'Media'}
+                      width={200}
+                      height={200}
+                      className="object-cover cursor-pointer w-full h-full"
+                    />
+                  )}
+                </div>
+              ))
           ) : (
             <div className="col-span-full flex justify-center items-center h-full text-gray-500">
               <p>No media files shared yet.</p>
@@ -298,25 +258,27 @@ const Chat: React.FC<ChatProps> = ({
       </TabPanel>
       <TabPanel value={tabValue} index={2}>
         <div className="overflow-y-auto p-4 h-full">
-          {otherFiles.length > 0 ? (
+          {messages.filter((message) => message.type === 'file').length > 0 ? (
             <ul className="space-y-2">
-              {otherFiles.map((file, index) => (
-                <li key={index} className="bg-gray-100 rounded-md relative p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="h-5 w-5 text-gray-500" />
-                    {file.fileUrl && (
-                      <a
-                        href={file.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline left-10 truncate overflow-hidden whitespace-nowrap right-0 absolute"
-                      >
-                        {file.fileName}
-                      </a>
-                    )}
-                  </div>
-                </li>
-              ))}
+              {messages
+                .filter((message) => message.type === 'file')
+                .map((file, index) => (
+                  <li key={index} className="bg-gray-100 rounded-md relative p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-5 w-5 text-gray-500" />
+                      {file.fileUrl && (
+                        <a
+                          href={file.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline left-10 truncate overflow-hidden whitespace-nowrap right-0 absolute"
+                        >
+                          {file.fileName}
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                ))}
             </ul>
           ) : (
             <div className="flex justify-center items-center h-full text-gray-500">
@@ -340,7 +302,6 @@ const Chat: React.FC<ChatProps> = ({
         <div className="px-4 left-0 right-0 -top-6 py-2 bg-gray-100 border-t flex items-center gap-2">
           <Paperclip className="h-4 w-4 text-gray-500" />
           <span className="text-sm text-gray-700 truncate flex-1">{file.name}</span>
-          {/* Added file unselect button */}
           <button onClick={handleRemoveFile} className="text-gray-500 hover:text-red-500 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
@@ -359,7 +320,6 @@ const Chat: React.FC<ChatProps> = ({
             placeholder="Type a message..."
           />
 
-          {/* Centered the send icon */}
           <button
             type="submit"
             className="bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-400 flex items-center justify-center"

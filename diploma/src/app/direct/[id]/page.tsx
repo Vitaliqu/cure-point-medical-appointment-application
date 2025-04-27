@@ -100,7 +100,7 @@ const DirectMessage = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [loading, messages]);
   if (!id) return;
   return (
-    <div className="max-w-2xl h-[calc(100dvh-4rem)] max-h-[64rem] mx-auto mt-10 md:p-4">
+    <div className="max-w-2xl h-[calc(100dvh-4rem)] max-h-[64rem] mx-auto">
       <Chat
         messages={messages}
         loading={loading}
