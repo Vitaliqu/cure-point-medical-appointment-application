@@ -1,7 +1,7 @@
 'use client';
 
 import React, { FC, useEffect, useState } from 'react';
-import { User, Search, Pen } from 'lucide-react';
+import { User, Search, Pen, Star } from 'lucide-react';
 import { db, auth } from '../../../backend/lib/firebaseConfig';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -16,39 +16,62 @@ import { UserType, AddressProps } from '@/interfaces/interfaces';
 
 type ExtendedUserType = UserType & {
   distance?: number;
+  rating?: number;
+  ratingCount?: number;
 };
+
+interface Rating {
+  doctor_id: string;
+  rating: number;
+}
 
 const Doctors: FC = () => {
   const [users, setUsers] = useState<ExtendedUserType[]>([]);
+  const [ratingsData, setRatingsData] = useState<{ [doctorId: string]: Rating[] }>({});
   const [loading, setLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] = useState<AddressProps | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<UserType | null>(null);
   const router = useRouter();
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userData = await fetchUserData(user.uid);
-        if (userData) {
-          setSelectedAddress(userData.selectedAddress);
-        }
+        if (userData) setSelectedAddress(userData.selectedAddress);
       }
     });
 
     return () => unsubscribe();
   }, []);
-
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchUsersAndRatings = async () => {
       try {
         const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('role', '==', 'doctor'));
-        const querySnapshot = await getDocs(q);
+        const doctorsQuery = query(usersRef, where('role', '==', 'doctor'));
+        const doctorsSnapshot = await getDocs(doctorsQuery);
         const userList: ExtendedUserType[] = [];
-        querySnapshot.forEach((doc) => {
+        const ratingsRef = collection(db, 'ratings');
+        const ratingsSnapshot = await getDocs(ratingsRef);
+        const fetchedRatings: { [doctorId: string]: Rating[] } = {};
+        ratingsSnapshot.forEach((doc) => {
+          const ratingData = doc.data() as Rating;
+          if (!fetchedRatings[ratingData.doctor_id]) {
+            fetchedRatings[ratingData.doctor_id] = [];
+          }
+          fetchedRatings[ratingData.doctor_id].push(ratingData);
+        });
+        setRatingsData(fetchedRatings);
+
+        doctorsSnapshot.forEach((doc) => {
           const data = doc.data();
+          const doctorId = doc.id;
+          const ratingsForDoctor = fetchedRatings[doctorId] || [];
+          const totalRating = ratingsForDoctor.reduce((sum, rating) => sum + rating.rating, 0);
+          const averageRating = ratingsForDoctor.length ? totalRating / ratingsForDoctor.length : 0;
+
           userList.push({
-            uid: doc.id,
+            uid: doctorId,
             name: data.name,
             surname: data.surname,
             phone: data.phone,
@@ -57,40 +80,35 @@ const Doctors: FC = () => {
             photoURL: data.photoURL || '',
             fields: data.fields,
             availableSlots: data.availableSlots || [],
+            rating: averageRating,
+            ratingCount: ratingsForDoctor.length,
           });
         });
 
-        const currentUser = auth.currentUser;
-        const filteredList = currentUser ? userList.filter((user) => user.uid !== currentUser.uid) : userList;
-
         if (selectedAddress) {
-          filteredList.forEach((doctor) => {
+          userList.forEach((doctor) => {
             doctor.distance = haversineDistance(selectedAddress.coordinates, doctor.selectedAddress.coordinates);
           });
-
-          filteredList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          userList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
         }
 
-        setUsers(filteredList);
+        setUsers(userList);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching users and ratings:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchUsersAndRatings();
   }, [selectedAddress]);
 
   const handleDoctorSelect = (doctor: UserType) => {
     if (!auth.currentUser) {
       router.push(`/authorisation`);
-
       return;
     }
-
     setSelectedDoctor(doctor);
-
     setIsModalOpen(true);
   };
 
@@ -115,7 +133,6 @@ const Doctors: FC = () => {
           <div className="p-4 sm:p-6 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-
               <PlacesAutocomplete setSelectedAddress={setSelectedAddress} />
             </div>
           </div>
@@ -125,9 +142,7 @@ const Doctors: FC = () => {
               {users.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-
                   <p className="text-lg font-medium">Nothing found</p>
-
                   <p className="text-sm">Try adjusting your search criteria</p>
                 </div>
               ) : (
@@ -148,19 +163,30 @@ const Doctors: FC = () => {
 
                     <div className="flex-1 text-center sm:text-left">
                       <h3 className="font-semibold text-gray-900">{user.name}</h3>
-
+                      {ratingsData && (
+                        <div className="flex items-center justify-center sm:justify-start space-x-1 mt-1">
+                          {[...Array(Math.round(user.rating || 0))].map((_, i) => (
+                            <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          ))}
+                          {[...Array(5 - Math.round(user.rating || 0))].map((_, i) => (
+                            <Star key={i + Math.round(user.rating || 0)} className="w-4 h-4 text-gray-300" />
+                          ))}
+                          <span className="text-xs text-gray-500">({user.ratingCount})</span>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-500">
                         {user.distance !== undefined ? `${user.distance.toFixed(1)} km away` : 'Distance unknown'}
                       </p>
                     </div>
-
-                    <button
-                      onClick={() => handleDoctorSelect(user)}
-                      className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm w-full sm:w-auto"
-                    >
-                      <Pen className="w-4 h-4 mr-2" />
-                      Make An Appointment
-                    </button>
+                    {auth.currentUser && user.uid !== auth.currentUser.uid && (
+                      <button
+                        onClick={() => handleDoctorSelect(user)}
+                        className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm w-full sm:w-auto"
+                      >
+                        <Pen className="w-4 h-4 mr-2" />
+                        Make An Appointment
+                      </button>
+                    )}
                   </div>
                 ))
               )}

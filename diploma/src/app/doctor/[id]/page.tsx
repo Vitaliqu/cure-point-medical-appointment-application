@@ -9,8 +9,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import AppointmentModal from '@/components/AppointmentModal';
 import haversineDistance from '@/functions/haversineDistance';
 import { AddressProps, Slot, UserType } from '@/interfaces/interfaces';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
+import { Star } from 'lucide-react';
 
 const MapViewer = dynamic(() => import('@/components/MapViewer'), {
   ssr: false,
@@ -23,26 +24,31 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<UserType | null>(null);
-  console.log(isMapOpen);
+  const [doctorRating, setDoctorRating] = useState<number>(0);
+  const [ratingCount, setRatingCount] = useState<number>(0);
+
+  interface Rating {
+    doctor_id: string;
+    rating: number;
+  }
+
   const updateDoctorAvailableSlots = async (doctorId: string, updatedAvailableSlots: Slot[]) => {
     try {
       const doctorRef = doc(db, 'users', doctorId);
       await updateDoc(doctorRef, { availableSlots: updatedAvailableSlots });
-      // After updating in the database, also update the local state
       if (selectedDoctor && selectedDoctor.uid === doctorId) {
         setSelectedDoctor({ ...selectedDoctor, availableSlots: updatedAvailableSlots });
       }
     } catch (error) {
       console.error('Error updating doctors available slots:', error);
-      // Optionally handle error feedback to the user
     }
   };
 
+  const doctorId = React.use(params).id; // Unwrap the Promise using React.use() to get the doctor ID.
+
   useEffect(() => {
-    let isMounted = true; // To prevent state updates on unmounted component
+    let isMounted = true;
     const fetchUsers = async () => {
-      const resolvedParams = await params;
-      const doctorId = resolvedParams.id;
       try {
         if (doctorId) {
           const doctorData = await fetchUserData(doctorId);
@@ -65,11 +71,32 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
       }
     };
 
+    const fetchRatings = async () => {
+      try {
+        const ratingsRef = collection(db, 'ratings');
+        const ratingsQuery = query(ratingsRef, where('doctor_id', '==', doctorId));
+        const ratingsSnapshot = await getDocs(ratingsQuery);
+        const fetchedRatings: Rating[] = [];
+        ratingsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedRatings.push(data as Rating);
+        });
+        const totalRating = fetchedRatings.reduce((sum, rating) => sum + rating.rating, 0);
+        const averageRating = fetchedRatings.length ? totalRating / fetchedRatings.length : 0;
+        setDoctorRating(averageRating);
+        setRatingCount(fetchedRatings.length);
+      } catch (error) {
+        console.error('Error fetching ratings:', error);
+      }
+    };
+
     fetchUsers();
+    fetchRatings();
+
     return () => {
       isMounted = false;
     };
-  }, [params]);
+  }, [doctorId]);
 
   useEffect(() => {
     if (selectedDoctor && selectedAddress) {
@@ -88,16 +115,18 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
       </div>
     );
   }
+
   if (!selectedDoctor) return <></>;
+
   return (
     <div className="flex flex-col md:flex-row p-4 md:p-8 items-start justify-center bg-white">
       <div className="bg-white rounded-xl shadow-md overflow-hidden w-full md:max-w-md md:mr-8 mb-4 md:mb-0">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 m-0 w-full">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white md:text-2xl">Doctor`s Profile</h1>
+            <h1 className="text-xl font-bold text-white md:text-2xl">Doctor&apos;s Profile</h1>
           </div>
         </div>
-        <div className={'p-6'}>
+        <div className="p-6">
           <div className="flex items-center justify-center mb-4">
             <div className="relative w-24 h-24 rounded-full overflow-hidden">
               <Image
@@ -114,6 +143,18 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
           {selectedDoctor.fields && selectedDoctor.fields.length > 0 && (
             <p className="text-gray-600 text-center mb-3">{selectedDoctor.fields.join(', ')}</p>
           )}
+
+          {/* Rating Display */}
+          <div className="flex items-center justify-center mb-2">
+            {[...Array(Math.round(doctorRating))].map((_, i) => (
+              <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            ))}
+            {[...Array(5 - Math.round(doctorRating))].map((_, i) => (
+              <Star key={i + Math.round(doctorRating)} className="w-5 h-5 text-gray-300" />
+            ))}
+            <span className="ml-2 text-sm text-gray-500">({ratingCount})</span>
+          </div>
+
           <div className="mb-2">
             <strong className="text-gray-700 block mb-1">Phone:</strong>
             <a href={`tel:${selectedDoctor.phone}`} className="text-blue-600 hover:underline">
@@ -134,12 +175,14 @@ const Doctor = ({ params }: { params: Promise<{ id: string }> }) => {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="mt-4 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
-          >
-            Make An Appointment
-          </button>
+          {auth.currentUser && doctorId !== auth.currentUser.uid && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="mt-4 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
+            >
+              Make An Appointment
+            </button>
+          )}
 
           {isModalOpen && (
             <AppointmentModal

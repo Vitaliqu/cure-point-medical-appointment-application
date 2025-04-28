@@ -1,14 +1,14 @@
 'use client';
-import { Appointment, PaymentData, RenderAppointmentsListProps, UserType } from '@/interfaces/interfaces';
+import { Appointment, PaymentData, RenderAppointmentsListProps, UserType, Rating } from '@/interfaces/interfaces';
 import Image from 'next/image';
-import { User } from 'lucide-react';
+import { User, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import React, { useState, FC, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useApproveHandler from '@/../hooks/useApproveHandler';
 import useDeclineHandler from '@/../hooks/useDeclineHandler';
 import useCreatePaymentHandler from '../../hooks/useCreatePaymentHandler';
-import { collection, doc, getDocs, or, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, or, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../backend/lib/firebaseConfig';
 import useEditPaymentHandler from '../../hooks/useEditPaymentHandler';
 import useCancelPaymentHandler from '../../hooks/useCancelPaymentHandler';
@@ -36,6 +36,9 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [amountInput, setAmountInput] = useState<number>(0);
+  const [ratedAppointments, setRatedAppointments] = useState<string[]>([]);
+  const [userRatings, setUserRatings] = useState<{ [appointmentId: string]: number }>({});
+
   const handleApprove = useApproveHandler({ setActiveAppointments, setPastAppointments });
   const handleDecline = useDeclineHandler({
     appointmentsToRender: activeTab === 'active' ? activeAppointments : pastAppointments,
@@ -57,6 +60,46 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
     },
     setPayments,
   });
+
+  const rateAppointment = async (appointment: Appointment, rating: number) => {
+    if (!currentUser || currentUser.role !== 'patient') {
+      console.error('Only patients can rate appointments.');
+      return;
+    }
+    try {
+      const existingRatingQuery = query(
+        collection(db, 'ratings'),
+        where('appointment_id', '==', appointment.id),
+        where('patient_id', '==', appointment.patientId),
+      );
+      const existingRatingSnapshot = await getDocs(existingRatingQuery);
+
+      if (!existingRatingSnapshot.empty) {
+        const ratingDoc = existingRatingSnapshot.docs[0].ref;
+        await updateDoc(ratingDoc, { rating: rating, created_at: new Date() });
+        setPaymentSuccess('Rating updated successfully!');
+      } else {
+        const ratingData = {
+          appointment_id: appointment.id,
+          doctor_id: appointment.doctorId,
+          patient_id: appointment.patientId,
+          rating: rating,
+          created_at: new Date(),
+        };
+        const ratingDocRef = doc(collection(db, 'ratings'));
+        await setDoc(ratingDocRef, ratingData);
+        setPaymentSuccess('Appointment rated successfully!');
+      }
+      setRatedAppointments((prev) => [...prev, appointment.id]);
+      setUserRatings((prev) => ({ ...prev, [appointment.id]: rating }));
+      setTimeout(() => setPaymentSuccess(null), 3000);
+    } catch (error) {
+      console.error('Error rating appointment:', error);
+      setPaymentError('Failed to rate appointment.');
+      setTimeout(() => setPaymentError(null), 3000);
+    }
+  };
+
   const handleEditPayment = useEditPaymentHandler({
     currentUser,
     paymentAmount: amountInput,
@@ -150,6 +193,29 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
     },
     [setPayments],
   );
+
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (currentUser?.role === 'patient') {
+        const ratingsQuery = query(collection(db, 'ratings'), where('patient_id', '==', currentUser.uid));
+        const ratingsSnapshot = await getDocs(ratingsQuery);
+        const fetchedRatings: Rating[] = [];
+        const appointmentRatings: { [appointmentId: string]: number } = {};
+        ratingsSnapshot.forEach((doc) => {
+          const ratingData = { id: doc.id, ...doc.data() } as Rating;
+          fetchedRatings.push(ratingData);
+          appointmentRatings[ratingData.appointment_id] = ratingData.rating;
+        });
+        setRatedAppointments(fetchedRatings.map((r) => r.appointment_id));
+        setUserRatings(appointmentRatings);
+      } else {
+        setRatedAppointments([]);
+        setUserRatings({});
+      }
+    };
+
+    fetchRatings();
+  }, [currentUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -252,6 +318,8 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
       )}
       <ul className="space-y-4">
         {appointmentsToRender.map((appointment) => {
+          const isRated = ratedAppointments.includes(appointment.id);
+          const currentRating = userRatings[appointment.id];
           const patient = users.find((user) => user.uid === appointment.patientId);
           const doctor = users.find((user) => user.uid === appointment.doctorId);
           const appointmentDate = appointment.date;
@@ -385,7 +453,43 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
                         </button>
                       </>
                     )}
-
+                  {currentUser?.role === 'patient' && appointment.status === 'finished' && (
+                    <div className="flex items-center space-x-2">
+                      {isRated ? (
+                        <>
+                          <span className="text-sm text-gray-500">Your rating:</span>
+                          {[1, 2, 3, 4, 5].map((rate) => (
+                            <Star
+                              key={rate}
+                              className={`w-5 h-5 ${rate <= currentRating ? 'text-yellow-500' : 'text-gray-300'}`}
+                            />
+                          ))}
+                          <button
+                            onClick={() => {
+                              setRatedAppointments(ratedAppointments.filter((id) => id !== appointment.id));
+                              setUserRatings({ ...userRatings, [appointment.id]: 0 });
+                            }}
+                            className="ml-2 text-sm text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                          >
+                            (Change rating)
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {[1, 2, 3, 4, 5].map((rate) => (
+                            <button
+                              key={rate}
+                              onClick={() => rateAppointment(appointment, rate)}
+                              className={`text-yellow-500 hover:text-yellow-700 focus:outline-none`}
+                            >
+                              <Star className="w-5 h-5" />
+                            </button>
+                          ))}
+                          <span className="text-sm text-gray-500">(Rate this appointment)</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {(appointment.status === 'approved' || appointment.status === 'finished') && (
                     <button
                       onClick={() => router.push(`/appointment_chat/${appointment.id}`)}

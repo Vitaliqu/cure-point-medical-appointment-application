@@ -61,6 +61,14 @@ export interface Message {
   appointmentId?: string | null;
   senderId: string;
 }
+export interface Rating {
+  id?: string;
+  appointment_id: string;
+  doctor_id: string;
+  patient_id: string;
+  rating: number;
+  created_at: Date;
+}
 
 export interface AppointmentModalProps {
   doctor: UserType | null;

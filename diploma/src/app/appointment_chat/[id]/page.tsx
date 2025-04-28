@@ -94,7 +94,7 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
     return () => {
       if (unsubFn) unsubFn();
     };
-  }, [user, receiver?.uid, router, appointmentId]);
+  }, [user, receiver?.uid, router, appointmentId, messages]);
 
   useEffect(() => {
     if (!loading) {
