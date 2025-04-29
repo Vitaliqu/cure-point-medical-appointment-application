@@ -5,8 +5,8 @@ import mapboxgl, { Map } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../../backend/lib/firebaseConfig';
-import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
-import fetchUsersData from '@/app/api/fetchUsersData/fetchUsersData';
+import fetchUserData from '@/app/api/fetchUserData';
+import fetchUsersData from '@/app/api/fetchUsersData';
 import { useRouter } from 'next/navigation';
 import { GeoJSON, UserType } from '@/interfaces/interfaces';
 

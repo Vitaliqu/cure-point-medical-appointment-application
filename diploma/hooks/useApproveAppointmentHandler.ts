@@ -8,7 +8,7 @@ type ApproveHandlerProps = {
   setPastAppointments: Dispatch<SetStateAction<Appointment[]>>;
 };
 
-const useApproveHandler = ({ setActiveAppointments, setPastAppointments }: ApproveHandlerProps) => {
+const useApproveAppointmentHandler = ({ setActiveAppointments, setPastAppointments }: ApproveHandlerProps) => {
   return useCallback(
     async (appointmentId: string) => {
       try {
@@ -28,4 +28,4 @@ const useApproveHandler = ({ setActiveAppointments, setPastAppointments }: Appro
   );
 };
 
-export default useApproveHandler;
+export default useApproveAppointmentHandler;

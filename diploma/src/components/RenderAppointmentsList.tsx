@@ -5,8 +5,8 @@ import { User, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import React, { useState, FC, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import useApproveHandler from '@/../hooks/useApproveHandler';
-import useDeclineHandler from '@/../hooks/useDeclineHandler';
+import useApproveAppointmentHandler from '../../hooks/useApproveAppointmentHandler';
+import useDeclineAppointmentHandler from '../../hooks/useDeclineAppointmentHandler';
 import useCreatePaymentHandler from '../../hooks/useCreatePaymentHandler';
 import { collection, doc, getDocs, or, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../backend/lib/firebaseConfig';
@@ -39,8 +39,8 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   const [ratedAppointments, setRatedAppointments] = useState<string[]>([]);
   const [userRatings, setUserRatings] = useState<{ [appointmentId: string]: number }>({});
 
-  const handleApprove = useApproveHandler({ setActiveAppointments, setPastAppointments });
-  const handleDecline = useDeclineHandler({
+  const handleApprove = useApproveAppointmentHandler({ setActiveAppointments, setPastAppointments });
+  const handleDecline = useDeclineAppointmentHandler({
     appointmentsToRender: activeTab === 'active' ? activeAppointments : pastAppointments,
     currentUser,
     setActiveAppointments,

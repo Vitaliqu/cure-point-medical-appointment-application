@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { auth, db } from '../../backend/lib/firebaseConfig';
-import { addDoc, collection, doc, Timestamp, updateDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
-import { UserType, AppointmentModalProps } from '@/interfaces/interfaces';
+import { AppointmentModalProps } from '@/interfaces/interfaces';
+import useConfirmAppointmentHandler from '../../hooks/useConfirmAppointmentHandler';
 
 const AppointmentModal: React.FC<AppointmentModalProps> = ({
   doctor,
@@ -13,27 +10,12 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   setIsModalOpen,
   setUsers,
   setSelectedDoctor,
-  updateDoctorAvailableSlots,
 }) => {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
   const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
-  const [user, setUser] = useState<UserType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-
-  // Fetch user data on authentication state change
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        const userData = await fetchUserData(currentUser.uid);
-        setUser(userData || null);
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Clear error message after a delay
   useEffect(() => {
@@ -70,77 +52,18 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     setAppointmentDate(new Date(`${date}T${time}`));
   }, []);
 
-  // Handle appointment confirmation using useCallback
-  const handleConfirmAppointment = useCallback(
-    async (slot: { date: string; time: string } | null) => {
-      if (!appointmentDate || !doctor || !auth.currentUser || !slot) {
-        setErrorMessage('Please select a date and time.');
-        return;
-      }
-
-      setIsConfirming(true);
-      setErrorMessage(null);
-
-      const { date: formattedDate, time: selectedTime } = slot;
-
-      try {
-        // Directly use the passed doctor data if available
-        const doctorData = doctor;
-        if (!doctorData) {
-          setErrorMessage('Error: Doctor data not available. Please try again.');
-          setIsConfirming(false);
-          return;
-        }
-
-        const isSlotAvailable = doctorData.availableSlots?.some(
-          (s) => s.date === formattedDate && s.time.includes(selectedTime),
-        );
-
-        if (!isSlotAvailable) {
-          setErrorMessage('Selected time is no longer available. Please choose another slot.');
-          setIsConfirming(false);
-          return;
-        }
-
-        const appointmentData = {
-          doctorId: doctor.uid,
-          doctorName: doctor.name,
-          patientId: auth.currentUser.uid,
-          patientName: user?.name,
-          date: Timestamp.fromDate(appointmentDate),
-          time: selectedTime,
-          createdAt: Timestamp.now(),
-          status: 'pending',
-        };
-        await addDoc(collection(db, 'appointments'), appointmentData);
-
-        const doctorRef = doc(db, 'users', doctor.uid);
-        const currentAvailableSlots = doctorData.availableSlots || [];
-        const updatedAvailableSlots = currentAvailableSlots
-          .map((s) => (s.date === formattedDate ? { ...s, time: s.time.filter((t) => t !== selectedTime) } : s))
-          .filter((s) => s.time.length > 0);
-
-        await updateDoc(doctorRef, { availableSlots: updatedAvailableSlots });
-
-        // Optimistic update of the local state
-        if (setUsers) {
-          setUsers((prevUsers) =>
-            prevUsers.map((d) => (d.uid === doctor.uid ? { ...d, availableSlots: updatedAvailableSlots } : d)),
-          );
-        }
-        if (updateDoctorAvailableSlots) {
-          setTimeout(() => updateDoctorAvailableSlots(doctor.uid, updatedAvailableSlots), 2000);
-        }
-
-        setSuccessMessage('Appointment confirmed!');
-      } catch (error: unknown) {
-        console.error('Error creating appointment:', error);
-        setErrorMessage('Failed to create appointment. Please try again.');
-        setIsConfirming(false);
-      }
-    },
-    [appointmentDate, doctor, setUsers, user?.name, updateDoctorAvailableSlots],
+  // Now, in your component, you would use the custom hook like this:
+  const confirmAppointment = useConfirmAppointmentHandler(
+    setErrorMessage,
+    setSuccessMessage,
+    setIsConfirming,
+    setUsers,
+    setSelectedDoctor,
   );
+
+  const handleConfirm = () => {
+    confirmAppointment(appointmentDate, doctor, selectedSlot);
+  };
 
   if (!doctor) return null;
 
@@ -218,7 +141,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={() => handleConfirmAppointment(selectedSlot)}
+            onClick={handleConfirm}
             disabled={!selectedSlot || isConfirming}
             className={`px-4 py-2 rounded ${
               !selectedSlot || isConfirming

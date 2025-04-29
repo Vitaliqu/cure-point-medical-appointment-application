@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
-import fetchUsersData from '@/app/api/fetchUsersData/fetchUsersData';
+import fetchUsersData from '@/app/api/fetchUsersData';
 import { UserType, PaymentData } from '@/interfaces/interfaces';
 import RenderAppointmentsList from '../../components/RenderAppointmentsList';
 import { formatDateForInput } from '../../../backend/lib/dateUtils';

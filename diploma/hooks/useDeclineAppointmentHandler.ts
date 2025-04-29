@@ -11,7 +11,7 @@ type DeclineHandlerProps = {
   setPastAppointments: Dispatch<SetStateAction<Appointment[]>>;
 };
 
-const useDeclineHandler = ({
+const useDeclineAppointmentHandler = ({
   appointmentsToRender,
   currentUser,
   setActiveAppointments,
@@ -61,4 +61,4 @@ const useDeclineHandler = ({
   );
 };
 
-export default useDeclineHandler;
+export default useDeclineAppointmentHandler;

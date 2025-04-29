@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import React, { Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import { User } from 'firebase/auth';
 
 export interface Slot {
   date: string;
@@ -22,11 +23,30 @@ export interface UserType {
   photoURL: string;
   fields: string[];
   availableSlots?: Slot[];
+  distance?: number | null;
+  rating?: number;
+  ratingCount?: number;
 }
 
 export interface AvailableTimePickerProps {
   availableSlots: Slot[] | null;
   onUpdateAvailableSlots: (updatedSlots: Slot[]) => void;
+  setErrorMessage: (message: string | null) => void;
+  setSuccessMessage: (message: string | null) => void;
+}
+
+export interface UseChatInitializerProps {
+  paramsId: string | null;
+  isAppointmentChat: boolean;
+}
+
+export interface UseChatInitializerResult {
+  user: User | null;
+  receiver: UserType | null;
+  messages: Message[];
+  userName: string | null;
+  userPhotoURL: string | null;
+  loading: boolean;
 }
 
 export interface Appointment {
@@ -71,12 +91,11 @@ export interface Rating {
 }
 
 export interface AppointmentModalProps {
-  doctor: UserType | null;
+  doctor: UserType;
   onClose: () => void;
   setIsModalOpen: (state: boolean) => void;
   setUsers: React.Dispatch<React.SetStateAction<UserType[]>> | null;
   setSelectedDoctor: ((doctor: UserType | null) => void) | null;
-  updateDoctorAvailableSlots: ((doctorId: string, updatedAvailableSlots: Slot[]) => void) | null;
 }
 
 export interface FeatureProperties {

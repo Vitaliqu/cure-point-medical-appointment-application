@@ -1,5 +1,5 @@
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../../backend/lib/firebaseConfig';
+import { db } from '../../../backend/lib/firebaseConfig';
 import { UserType } from '@/interfaces/interfaces';
 
 const fetchUserData = async (userId: string) => {

@@ -2,7 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { Pencil, Trash } from 'lucide-react';
 import { AvailableTimePickerProps, Slot } from '@/interfaces/interfaces';
 
-const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({ availableSlots, onUpdateAvailableSlots }) => {
+const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
+  availableSlots,
+  onUpdateAvailableSlots,
+  setErrorMessage,
+  setSuccessMessage,
+}) => {
   const [editingSlot, setEditingSlot] = useState<Slot | null>(null);
   const [editedTimes, setEditedTimes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
@@ -10,7 +15,8 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({ availableSlot
 
   const handleAddAvailableSlot = useCallback(() => {
     if (!selectedDate || !selectedTime) {
-      console.warn('Please select both date and time.');
+      setErrorMessage('Please select both date and time.');
+      setTimeout(() => setErrorMessage(null), 3000);
       return;
     }
 
@@ -26,7 +32,10 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({ availableSlot
         };
         onUpdateAvailableSlots(updatedSlots);
       } else {
-        console.error('This time slot already exists for the selected date.');
+        setSuccessMessage(null);
+        setErrorMessage('This time slot already exists for the selected date.');
+        setTimeout(() => setErrorMessage(null), 3000);
+        return;
       }
     } else {
       const newSlot = { date: selectedDate, time: [selectedTime] };
@@ -34,6 +43,9 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({ availableSlot
     }
 
     setSelectedTime('');
+    setErrorMessage(null);
+    setSuccessMessage('Slot created successfully.');
+    setTimeout(() => setSuccessMessage(null), 3000);
   }, [availableSlots, onUpdateAvailableSlots, selectedDate, selectedTime, setSelectedTime]);
 
   const handleRemoveTime = useCallback(

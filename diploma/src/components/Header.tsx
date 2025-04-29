@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../backend/lib/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
+import fetchUserData from '@/app/api/fetchUserData';
 
 const Header = () => {
   const router = useRouter();
@@ -47,7 +47,7 @@ const Header = () => {
       <div className="flex w-full flex-row px-4 md:px-16 items-center justify-between">
         <div onClick={() => router.push('/home')} className="flex flex-1  items-center gap-2 cursor-pointer">
           <Heart className="text-blue-500 w-6 h-6" />
-          <h1 className="text-xl font-black text-blue-500">MedConnect</h1>
+          <h1 className="text-xl font-black text-blue-500">Cure Point</h1>
         </div>
 
         <nav className="hidden md:flex-1 justify-center md:flex items-center space-x-6 text-sm lg:text-lg">

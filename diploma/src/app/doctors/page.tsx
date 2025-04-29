@@ -2,38 +2,30 @@
 
 import React, { FC, useEffect, useState } from 'react';
 import { User, Search, Pen, Star } from 'lucide-react';
-import { db, auth } from '../../../backend/lib/firebaseConfig';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { auth } from '../../../backend/lib/firebaseConfig';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PlacesAutocomplete from '@/components/PlacesAutocomplete';
-import fetchUserData from '@/app/api/fetchUserData/fetchUserData';
-import 'react-datepicker/dist/react-datepicker.css';
+import fetchUserData from '@/app/api/fetchUserData';
+import fetchDoctorsData from '@/app/api/fetchDoctorsData';
+import haversineDistance from '@/functions/haversineDistance';
 import AppointmentModal from '@/components/AppointmentModal';
 import { onAuthStateChanged } from 'firebase/auth';
-import haversineDistance from '@/functions/haversineDistance';
+
 import { UserType, AddressProps } from '@/interfaces/interfaces';
-
-type ExtendedUserType = UserType & {
-  distance?: number;
-  rating?: number;
-  ratingCount?: number;
-};
-
-interface Rating {
-  doctor_id: string;
-  rating: number;
-}
+import 'react-datepicker/dist/react-datepicker.css';
+import Loading from '@/components/Loading';
+import fetchRatingsData from '@/app/api/fetchRatings';
 
 const Doctors: FC = () => {
-  const [users, setUsers] = useState<ExtendedUserType[]>([]);
-  const [ratingsData, setRatingsData] = useState<{ [doctorId: string]: Rating[] }>({});
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] = useState<AddressProps | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<UserType | null>(null);
   const router = useRouter();
 
+  // Fetch user location on auth state change
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -44,63 +36,40 @@ const Doctors: FC = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Fetch doctors and ratings
   useEffect(() => {
-    const fetchUsersAndRatings = async () => {
+    const fetchDoctorsAndRatings = async () => {
       try {
-        const usersRef = collection(db, 'users');
-        const doctorsQuery = query(usersRef, where('role', '==', 'doctor'));
-        const doctorsSnapshot = await getDocs(doctorsQuery);
-        const userList: ExtendedUserType[] = [];
-        const ratingsRef = collection(db, 'ratings');
-        const ratingsSnapshot = await getDocs(ratingsRef);
-        const fetchedRatings: { [doctorId: string]: Rating[] } = {};
-        ratingsSnapshot.forEach((doc) => {
-          const ratingData = doc.data() as Rating;
-          if (!fetchedRatings[ratingData.doctor_id]) {
-            fetchedRatings[ratingData.doctor_id] = [];
-          }
-          fetchedRatings[ratingData.doctor_id].push(ratingData);
-        });
-        setRatingsData(fetchedRatings);
+        const doctorsData = await fetchDoctorsData();
+        const ratings = await fetchRatingsData();
 
-        doctorsSnapshot.forEach((doc) => {
-          const data = doc.data();
-          const doctorId = doc.id;
-          const ratingsForDoctor = fetchedRatings[doctorId] || [];
-          const totalRating = ratingsForDoctor.reduce((sum, rating) => sum + rating.rating, 0);
-          const averageRating = ratingsForDoctor.length ? totalRating / ratingsForDoctor.length : 0;
+        if (doctorsData) {
+          const enrichedDoctors = doctorsData.map((doctor) => {
+            const doctorRatings = ratings?.filter((rating) => rating.doctor_id === doctor.uid) || [];
+            const totalRating = doctorRatings.reduce((sum, r) => sum + r.rating, 0);
+            const averageRating = doctorRatings.length ? totalRating / doctorRatings.length : 0;
+            const distance = selectedAddress
+              ? haversineDistance(selectedAddress.coordinates, doctor.selectedAddress.coordinates)
+              : null;
 
-          userList.push({
-            uid: doctorId,
-            name: data.name,
-            surname: data.surname,
-            phone: data.phone,
-            selectedAddress: data.selectedAddress,
-            role: data.role,
-            photoURL: data.photoURL || '',
-            fields: data.fields,
-            availableSlots: data.availableSlots || [],
-            rating: averageRating,
-            ratingCount: ratingsForDoctor.length,
+            return {
+              ...doctor,
+              rating: averageRating,
+              ratingCount: doctorRatings.length,
+              distance,
+            };
           });
-        });
-
-        if (selectedAddress) {
-          userList.forEach((doctor) => {
-            doctor.distance = haversineDistance(selectedAddress.coordinates, doctor.selectedAddress.coordinates);
-          });
-          userList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          setUsers(enrichedDoctors);
         }
-
-        setUsers(userList);
       } catch (error) {
-        console.error('Error fetching users and ratings:', error);
+        console.error('Error fetching doctors or ratings:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchUsersAndRatings();
+    (async () => await fetchDoctorsAndRatings())();
   }, [selectedAddress]);
 
   const handleDoctorSelect = (doctor: UserType) => {
@@ -108,28 +77,23 @@ const Doctors: FC = () => {
       router.push(`/authorisation`);
       return;
     }
+
     setSelectedDoctor(doctor);
     setIsModalOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <Loading />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b flex justify-center from-blue-50 to-white">
-      <div className="sm:max-w-4xl w-full p-0 m-0 mx-auto md:px-4 md:py-6">
-        <div className="bg-white rounded-none md:rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[90vh]">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex justify-center">
+      <div className="sm:max-w-4xl w-full md:px-4 md:py-6">
+        <div className="bg-white shadow-lg rounded-none md:rounded-2xl overflow-hidden flex flex-col min-h-[90vh]">
+          {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-4 sm:px-6 py-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h1 className="text-lg sm:text-2xl font-bold text-white">Doctors</h1>
-            </div>
+            <h1 className="text-lg sm:text-2xl font-bold text-white">Doctors</h1>
           </div>
 
+          {/* Search */}
           <div className="p-4 sm:p-6 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -137,65 +101,62 @@ const Doctors: FC = () => {
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 flex-grow">
-            <div className="space-y-4">
-              {users.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg font-medium">Nothing found</p>
-                  <p className="text-sm">Try adjusting your search criteria</p>
-                </div>
-              ) : (
-                users.map((user) => (
-                  <div
-                    key={user.uid}
-                    className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition cursor-pointer border border-gray-100"
-                  >
-                    <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
-                      <Image
-                        onClick={() => router.push(`/doctor/${user.uid}`)}
-                        fill
-                        src={user.photoURL}
-                        alt={user.name}
-                        className="object-cover"
-                      />
-                    </div>
-
-                    <div className="flex-1 text-center sm:text-left">
-                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                      {ratingsData && (
-                        <div className="flex items-center justify-center sm:justify-start space-x-1 mt-1">
-                          {[...Array(Math.round(user.rating || 0))].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                          ))}
-                          {[...Array(5 - Math.round(user.rating || 0))].map((_, i) => (
-                            <Star key={i + Math.round(user.rating || 0)} className="w-4 h-4 text-gray-300" />
-                          ))}
-                          <span className="text-xs text-gray-500">({user.ratingCount})</span>
-                        </div>
-                      )}
-                      <p className="text-sm text-gray-500">
-                        {user.distance !== undefined ? `${user.distance.toFixed(1)} km away` : 'Distance unknown'}
-                      </p>
-                    </div>
-                    {auth.currentUser && user.uid !== auth.currentUser.uid && (
-                      <button
-                        onClick={() => handleDoctorSelect(user)}
-                        className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm w-full sm:w-auto"
-                      >
-                        <Pen className="w-4 h-4 mr-2" />
-                        Make An Appointment
-                      </button>
-                    )}
+          {/* Doctors List */}
+          <div className="p-4 sm:p-6 flex-grow space-y-4">
+            {users.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium">Nothing found</p>
+                <p className="text-sm">Try adjusting your search criteria</p>
+              </div>
+            ) : (
+              users.map((user) => (
+                <div
+                  key={user.uid}
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <div className="relative w-20 h-20 rounded-full overflow-hidden shrink-0 mx-auto sm:mx-0">
+                    <Image
+                      onClick={() => router.push(`/doctor/${user.uid}`)}
+                      fill
+                      src={user.photoURL}
+                      alt={user.name}
+                      className="object-cover"
+                    />
                   </div>
-                ))
-              )}
-            </div>
+
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                    <div className="flex items-center justify-center sm:justify-start space-x-1 mt-1">
+                      {[...Array(Math.round(user.rating || 0))].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      ))}
+                      {[...Array(5 - Math.round(user.rating || 0))].map((_, i) => (
+                        <Star key={i + 5} className="w-4 h-4 text-gray-300" />
+                      ))}
+                      <span className="text-xs text-gray-500">({user.ratingCount})</span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {user.distance ? `${user.distance.toFixed(1)} km away` : 'Distance unknown'}
+                    </p>
+                  </div>
+
+                  {user.uid !== auth.currentUser?.uid && (
+                    <button
+                      onClick={() => handleDoctorSelect(user)}
+                      className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm w-full sm:w-auto"
+                    >
+                      <Pen className="w-4 h-4 mr-2" />
+                      Make An Appointment
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Modal */}
       {isModalOpen && selectedDoctor && (
         <AppointmentModal
           doctor={selectedDoctor}
@@ -203,7 +164,6 @@ const Doctors: FC = () => {
           setIsModalOpen={setIsModalOpen}
           setUsers={setUsers}
           setSelectedDoctor={null}
-          updateDoctorAvailableSlots={null}
         />
       )}
     </div>
