@@ -95,12 +95,12 @@ const Doctors: FC = () => {
     });
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-6">
+      <div className="max-w-7xl mx-auto px-0 py-0 md:px-6 lg:px-8 md:py-8">
+        <div className="bg-white shadow-xl md:rounded-2xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 md:p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <h1 className="text-2xl md:text-3xl font-bold text-white">Find Your Doctor</h1>
-              <div className="relative flex-1 max-w-lg">
+              <div className="relative flex -mt-1 md:-mb-3 flex-1 max-w-lg items-center">
                 <PlacesAutocomplete
                   placeHolder={selectedAddress?.place_name || 'Enter your location'}
                   setSelectedAddress={setSelectedAddress}
@@ -108,7 +108,7 @@ const Doctors: FC = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 border-b border-gray-200 bg-gray-50">
+          <div className="p-3 md:p-6 border-b border-gray-200 bg-gray-50">
             <div className="flex justify-end items-center">
               <button
                 onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
@@ -196,9 +196,9 @@ const Doctors: FC = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 flex-grow">
+          <div className="p-2 md:p-6 flex-grow">
             <div className="mb-4">
-              <p className="text-gray-600">
+              <p className="text-gray-600 ml-1">
                 {filteredUsers.length} {filteredUsers.length === 1 ? 'doctor' : 'doctors'} found
               </p>
             </div>
