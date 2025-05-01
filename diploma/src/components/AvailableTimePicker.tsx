@@ -46,7 +46,15 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
     setErrorMessage(null);
     setSuccessMessage('Slot created successfully.');
     setTimeout(() => setSuccessMessage(null), 3000);
-  }, [availableSlots, onUpdateAvailableSlots, selectedDate, selectedTime, setSelectedTime]);
+  }, [
+    availableSlots,
+    onUpdateAvailableSlots,
+    setErrorMessage,
+    setSuccessMessage,
+    selectedDate,
+    selectedTime,
+    setSelectedTime,
+  ]);
 
   const handleRemoveTime = useCallback(
     (slotDate: string, timeToRemove: string) => {
@@ -59,7 +67,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
       });
       onUpdateAvailableSlots(updatedSlots.filter((slot) => slot.time.length > 0));
     },
-    [availableSlots, onUpdateAvailableSlots, setErrorMessage, setSuccessMessage],
+    [availableSlots, onUpdateAvailableSlots],
   );
 
   const handleEditSlot = useCallback(
