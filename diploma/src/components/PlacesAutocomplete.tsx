@@ -13,10 +13,11 @@ interface AddressProps {
 
 interface Props {
   setSelectedAddress: (value: AddressProps) => void;
+  placeHolder: string;
 }
 
-const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress }) => {
-  const [query, setQuery] = useState('');
+const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress, placeHolder }) => {
+  const [query, setQuery] = useState(placeHolder || '');
   const [suggestions, setSuggestions] = useState<AddressProps[]>([]);
   const [focused, setFocused] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,7 +69,7 @@ const PlacesAutocomplete: React.FC<Props> = ({ setSelectedAddress }) => {
     <div className="relative w-full">
       <input
         type="text"
-        placeholder="Enter your city/address"
+        placeholder={'Enter your city/address'}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setFocused(true)}

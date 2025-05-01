@@ -59,7 +59,7 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
       });
       onUpdateAvailableSlots(updatedSlots.filter((slot) => slot.time.length > 0));
     },
-    [availableSlots, onUpdateAvailableSlots],
+    [availableSlots, onUpdateAvailableSlots, setErrorMessage, setSuccessMessage],
   );
 
   const handleEditSlot = useCallback(

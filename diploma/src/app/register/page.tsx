@@ -274,7 +274,7 @@ function Register() {
                 <MapPin className="w-4 mt-0.5 h-4" />
                 City
               </label>
-              <PlacesAutocomplete setSelectedAddress={setSelectedAddress} />
+              <PlacesAutocomplete placeHolder={''} setSelectedAddress={setSelectedAddress} />
             </div>
             <button
               onClick={handleNext}

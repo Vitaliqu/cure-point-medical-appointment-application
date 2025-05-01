@@ -14,6 +14,7 @@ import useEditPaymentHandler from '../../hooks/useEditPaymentHandler';
 import useCancelPaymentHandler from '../../hooks/useCancelPaymentHandler';
 import StripePayment from '@/components/StripePayment';
 import usePaymentSuccess from '../../hooks/usePaymentSuccess';
+import fetchUsersData from '@/app/api/fetchUsersData';
 
 const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   activeTab,
@@ -148,7 +149,7 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   const fetchAppointments = useCallback(
     async (currentUser: UserType | null, selectedDate: Date | null) => {
       if (!currentUser) return;
-
+      const users: UserType[] | undefined = await fetchUsersData();
       try {
         const appointmentsRef = collection(db, 'appointments');
         const { role: userRole, uid: userId } = currentUser;
@@ -156,13 +157,13 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
           userRole === 'doctor'
             ? query(appointmentsRef, or(where('doctorId', '==', userId), where('patientId', '==', userId)))
             : query(appointmentsRef, where('patientId', '==', userId));
-
         const fetchedAppointments = (await getDocs(appointmentsQuery)).docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
+          patientName: users?.find((user) => user.uid === doc.data().patientId)?.name,
+          doctorName: users?.find((user) => user.uid === doc.data().doctorId)?.name,
           date: (doc.data().date as { toDate: () => Date }).toDate(),
         })) as Appointment[];
-
         const paymentsRef = collection(db, 'payments');
         const fetchedPayments = (await getDocs(paymentsRef)).docs.map((doc) => doc.data() as PaymentData);
         setPayments(fetchedPayments);

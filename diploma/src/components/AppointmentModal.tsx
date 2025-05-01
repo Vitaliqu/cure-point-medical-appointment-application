@@ -1,9 +1,8 @@
-'use client';
-
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { X, Calendar, Clock, Check, User } from 'lucide-react';
+import Image from 'next/image';
 import { AppointmentModalProps } from '@/interfaces/interfaces';
 import useConfirmAppointmentHandler from '../../hooks/useConfirmAppointmentHandler';
-
 const AppointmentModal: React.FC<AppointmentModalProps> = ({
   doctor,
   onClose,
@@ -11,21 +10,20 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   setUsers,
   setSelectedDoctor,
 }) => {
-  const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    date: string;
+    time: string;
+  } | null>(null);
   const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
-
-  // Clear error message after a delay
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => setErrorMessage(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
-
-  // Handle payment-success message and modal closure
   useEffect(() => {
     if (successMessage) {
       setIsConfirming(true);
@@ -39,20 +37,17 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
       return () => clearTimeout(timer);
     }
   }, [successMessage, setIsModalOpen, setSelectedDoctor]);
-
-  // Sort available slots by date using useMemo
   const sortedAvailableSlots = useMemo(
     () => [...(doctor?.availableSlots || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
     [doctor?.availableSlots],
   );
-
-  // Handle slot selection using useCallback
   const handleSelect = useCallback((date: string, time: string) => {
-    setSelectedSlot({ date, time });
+    setSelectedSlot({
+      date,
+      time,
+    });
     setAppointmentDate(new Date(`${date}T${time}`));
   }, []);
-
-  // Now, in your component, you would use the custom hook like this:
   const confirmAppointment = useConfirmAppointmentHandler(
     setErrorMessage,
     setSuccessMessage,
@@ -60,101 +55,125 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     setUsers,
     setSelectedDoctor,
   );
-
   const handleConfirm = () => {
     confirmAppointment(appointmentDate, doctor, selectedSlot);
   };
-
   if (!doctor) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-xl w-96 space-y-4">
-        <h2 className="text-xl font-semibold">
-          Select appointment for <span className="text-blue-600">{doctor.name}</span>
-        </h2>
-
-        {errorMessage && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative" role="alert">
-            <strong className="font-bold">Warning!</strong>
-            <span className="block sm:inline"> {errorMessage}</span>
+  if (successMessage) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          <div className="text-center py-8">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Appointment Scheduled!</h3>
+            <p className="text-gray-600">{successMessage}</p>
           </div>
-        )}
-
-        {successMessage && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded relative" role="alert">
-            <strong className="font-bold">Success!</strong>
-            <span className="block sm:inline"> {successMessage}</span>
-          </div>
-        )}
-
-        <div className="space-y-4 max-h-[300px] overflow-y-auto">
-          {sortedAvailableSlots.length > 0 ? (
-            sortedAvailableSlots.map(({ date, time }) => {
-              const formattedDate = new Date(date);
-              // Consider if adding 1 day here is always the desired behavior
-              const displayDate = formattedDate.toLocaleDateString();
-
-              return (
-                <div key={date}>
-                  <p className="font-medium mb-1">{displayDate}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(time) && time.length > 0 ? (
-                      time.map((t) => {
-                        const isSelected = selectedSlot?.date === date && selectedSlot?.time === t;
-                        return (
-                          <button
-                            key={t}
-                            onClick={() => handleSelect(date, t)}
-                            className={`px-3 py-1 rounded-full text-sm border ${
-                              isSelected
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                            }`}
-                          >
-                            {t}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div>No time slots available</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p>No available slots</p>
-          )}
         </div>
-
-        <div className="flex justify-end gap-2 pt-2">
+      </div>
+    );
+  }
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h3 className="text-xl font-bold text-gray-900">Book Appointment</h3>
           <button
             onClick={onClose}
+            className="text-gray-400 hover:text-gray-500 transition-colors"
             disabled={isConfirming}
-            className={`px-4 py-2 rounded ${
-              isConfirming
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
           >
-            Cancel
+            <X className="h-5 w-5" />
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!selectedSlot || isConfirming}
-            className={`px-4 py-2 rounded ${
-              !selectedSlot || isConfirming
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
-            {isConfirming ? 'Confirming...' : 'Confirm'}
-          </button>
+        </div>
+        <div className="p-6">
+          {/* Doctor Info */}
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="h-16 w-16 relative rounded-full overflow-hidden bg-gray-100">
+              {doctor.photoURL ? (
+                <Image src={doctor.photoURL} alt={doctor.name} fill className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <User className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div>
+              <h4 className="font-semibold text-lg">{doctor.name}</h4>
+              <p className="text-gray-500 text-sm">{doctor.fields?.join(', ')}</p>
+            </div>
+          </div>
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">{errorMessage}</p>
+            </div>
+          )}
+          {/* Available Slots */}
+          <div className="space-y-6 max-h-[400px] overflow-y-auto">
+            {sortedAvailableSlots.length > 0 ? (
+              sortedAvailableSlots.map(({ date, time }) => {
+                const formattedDate = new Date(date);
+                const displayDate = formattedDate.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                });
+                return (
+                  <div key={date} className="space-y-3">
+                    <div className="flex items-center gap-2 text-gray-900">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <h3 className="font-medium">{displayDate}</h3>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.isArray(time) && time.length > 0 ? (
+                        time.map((t) => {
+                          const isSelected = selectedSlot?.date === date && selectedSlot?.time === t;
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => handleSelect(date, t)}
+                              className={`py-2 px-1 text-center text-sm rounded-lg border transition-colors ${isSelected ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:border-blue-300'}`}
+                            >
+                              <Clock className="w-4 h-4 mx-auto mb-1" />
+                              {t}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="col-span-3 text-gray-500 text-center py-2">No time slots available</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-6 text-gray-500">No available slots</div>
+            )}
+          </div>
+        </div>
+        {/* Actions */}
+        <div className="p-6 border-t bg-gray-50 rounded-b-2xl">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onClose}
+              disabled={isConfirming}
+              className="flex-1 px-4 py-2.5 border border-gray-300 hover:border-blue-300 hover:bg-blue-50 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={!selectedSlot || isConfirming}
+              className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isConfirming ? 'Confirming...' : 'Confirm Appointment'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
 export default AppointmentModal;

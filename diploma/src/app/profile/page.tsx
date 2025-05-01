@@ -197,7 +197,7 @@ function Profile() {
                           value={formData.name}
                           onChange={handleChange}
                           disabled={!editing}
-                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                          className="w-full pl-8 md:pl-12 pr-3 py-3.5  rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
                         />
                       </div>
                     </div>
@@ -212,7 +212,7 @@ function Profile() {
                           value={formData.surname}
                           onChange={handleChange}
                           disabled={!editing}
-                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                          className="w-full pl-8 md:pl-12 pr-3 py-3.5  rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
                         />
                       </div>
                     </div>
@@ -227,7 +227,7 @@ function Profile() {
                           value={formData.phone}
                           onChange={handleChange}
                           disabled={!editing}
-                          className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                          className="w-full pl-8 md:pl-12 pr-3 py-3.5  rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
                         />
                       </div>
                     </div>
@@ -239,6 +239,7 @@ function Profile() {
                         {editing ? (
                           <div className="w-full">
                             <PlacesAutocomplete
+                              placeHolder={formData.selectedAddress.place_name}
                               setSelectedAddress={(e) => {
                                 setFormData((prevFormData) => ({ ...prevFormData, selectedAddress: e }));
                               }}
@@ -251,7 +252,7 @@ function Profile() {
                             value={formData.selectedAddress.place_name}
                             onChange={handleChange}
                             disabled={true}
-                            className="w-full pl-8 md:pl-12 pr-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
+                            className="w-full pl-8 md:pl-12 pr-3 py-3.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm"
                           />
                         )}
                       </div>

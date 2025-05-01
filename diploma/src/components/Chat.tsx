@@ -1,13 +1,10 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import ChatMessage from './ChatMessage';
 import { Upload, Paperclip, Send, X } from 'lucide-react';
-import { db, storage } from '../../backend/lib/firebaseConfig';
 import { ChatProps, Message } from '@/interfaces/interfaces';
-import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import sendMessage from '../../hooks/sendMessage';
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -40,7 +37,7 @@ const Chat: React.FC<ChatProps> = ({
   userPhotoURL,
   appointmentId,
 }) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -69,33 +66,6 @@ const Chat: React.FC<ChatProps> = ({
     setLoading(initialLoading);
   }, [initialMessages, initialLoading]);
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !recipientId) return;
-
-    if (input.trim()) {
-      const messagePayload: Message = {
-        text: input.trim(),
-        type: 'text',
-        participants: [user.uid, recipientId],
-        participantsKey: [user.uid, recipientId].sort().join('_'),
-        createdAt: Timestamp.fromDate(new Date()),
-        appointmentId: appointmentId || null,
-        senderId: user.uid,
-      };
-      try {
-        await addDoc(collection(db, 'directMessages'), messagePayload);
-        setInput('');
-      } catch (error) {
-        console.error('Error sending text message:', error);
-      }
-    }
-
-    if (file) {
-      handleFileUpload();
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -112,54 +82,6 @@ const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  const handleFileUpload = async () => {
-    if (!file || !user || !recipientId) return;
-
-    const fileId = uuidv4();
-    const storageRef = ref(storage, `chatFiles/${user.uid}_${recipientId}/${fileId}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error('Error uploading file:', error);
-        setUploadProgress(null);
-        setFile(null);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          const messagePayload: Message = {
-            type: file.type.startsWith('image/') ? 'image' : 'file',
-            [file.type.startsWith('image/') ? 'imageUrl' : 'fileUrl']: downloadURL,
-            fileName: file.name,
-            participants: [user.uid, recipientId],
-            participantsKey: [user.uid, recipientId].sort().join('_'),
-            createdAt: Timestamp.fromDate(new Date()),
-            appointmentId: appointmentId || null,
-            senderId: user.uid,
-          };
-          await addDoc(collection(db, 'directMessages'), messagePayload);
-          setFile(null);
-          setUploadProgress(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        } catch (error) {
-          console.error('Error getting download URL or sending file message:', error);
-          setUploadProgress(null);
-          setFile(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }
-      },
-    );
-  };
   useEffect(() => {
     if (!loading && tabValue === 0) {
       dummy.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -308,7 +230,12 @@ const Chat: React.FC<ChatProps> = ({
         </div>
       )}
       {tabValue === 0 && (
-        <form onSubmit={sendMessage} className="bg-white border-t relative py-3 px-4 flex items-center gap-2 shadow-md">
+        <form
+          onSubmit={(e) =>
+            sendMessage(e, input, setInput, user.uid, recipientId, appointmentId, file, setUploadProgress, setFile)
+          }
+          className="bg-white border-t relative py-3 px-4 flex items-center gap-2 shadow-md"
+        >
           <label htmlFor="fileInput" className="text-gray-500 hover:text-blue-500 cursor-pointer">
             <Upload className="h-5 w-5" />
           </label>

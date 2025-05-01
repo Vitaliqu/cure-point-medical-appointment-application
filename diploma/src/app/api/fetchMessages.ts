@@ -1,6 +1,7 @@
 import { and, collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/../backend/lib/firebaseConfig';
 import { Message } from '@/interfaces/interfaces';
+import { decryptText } from '../../../backend/utils/crypto';
 
 export default function fetchMessages({
   appointmentId,
@@ -25,6 +26,14 @@ export default function fetchMessages({
       id: doc.id,
       ...doc.data(),
     })) as Message[];
-    onMessagesUpdate(liveMessages);
+    onMessagesUpdate(
+      liveMessages.map((msg) => ({
+        ...msg,
+        text: msg.text ? decryptText(msg.text) : '',
+        fileUrl: msg.fileUrl ? decryptText(msg.fileUrl) : '',
+        imageUrl: msg.imageUrl ? decryptText(msg.imageUrl) : '',
+        fileName: msg.fileName ? decryptText(msg.fileName) : '',
+      })),
+    );
   });
 }

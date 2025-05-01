@@ -62,7 +62,7 @@ export interface Appointment {
 export interface ChatProps {
   messages: Message[];
   loading: boolean;
-  user: { uid: string } | null;
+  user: { uid: string };
   recipientId: string;
   userName: string | null;
   userPhotoURL: string | null;
