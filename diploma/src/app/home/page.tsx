@@ -29,7 +29,7 @@ const Home = () => {
               <Link className={'absolute h-full w-full'} href="/doctors"></Link>
               Find a Doctor
             </button>
-            <button className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors py-2 px-6 rounded-md font-bold">
+            <button className="border border-blue-600 relative text-blue-600 hover:bg-blue-600 hover:text-white transition-colors py-2 px-6 rounded-md font-bold">
               <Link className={'absolute h-full w-full'} href="/about"></Link>
               Learn More
             </button>
