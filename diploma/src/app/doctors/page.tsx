@@ -100,7 +100,7 @@ const Doctors: FC = () => {
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 md:p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <h1 className="text-2xl md:text-3xl font-bold text-white">Find Your Doctor</h1>
-              <div className="relative flex -mt-1 md:-mb-3 flex-1 max-w-lg items-center">
+              <div className="relative flex -mt-1 md:-mb-3 flex-1 md:max-w-lg items-center">
                 <PlacesAutocomplete
                   placeHolder={selectedAddress?.place_name || 'Enter your location'}
                   setSelectedAddress={setSelectedAddress}

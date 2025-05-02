@@ -82,11 +82,10 @@ const Doctor: FC<{ params: Promise<{ id: string }> }> = ({ params }) => {
   return (
     <div className="flex flex-col md:flex-row p-4 md:p-8 items-start justify-center bg-white">
       {/* Profile Card */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden w-full md:max-w-md md:mr-8 mb-4 md:mb-0">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 w-full">
-          <h1 className="text-xl font-bold text-white md:text-2xl">Doctor&apos;s Profile</h1>
+      <div className="bg-white rounded-lg shadow-md overflow-hidden w-full md:max-w-md">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4">
+          <h1 className="text-xl md:text-2xl font-black text-white">Doctor&apos;s Profile</h1>
         </div>
-
         <div className="p-6">
           {/* Doctor Photo */}
           <div className="flex items-center justify-center mb-4">
@@ -99,19 +98,16 @@ const Doctor: FC<{ params: Promise<{ id: string }> }> = ({ params }) => {
               />
             </div>
           </div>
-
           {/* Doctor Name */}
-          <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">
+          <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
             {selectedDoctor.name} {selectedDoctor.surname}
           </h2>
-
           {/* Doctor Fields */}
           {selectedDoctor.fields?.length > 0 && (
             <p className="text-gray-600 text-center mb-3">{selectedDoctor.fields.join(', ')}</p>
           )}
-
           {/* Rating */}
-          <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center justify-center mb-4">
             {[...Array(Math.round(selectedDoctor.rating || 0))].map((_, i) => (
               <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />
             ))}
@@ -120,41 +116,37 @@ const Doctor: FC<{ params: Promise<{ id: string }> }> = ({ params }) => {
             ))}
             <span className="ml-2 text-sm text-gray-500">({ratingCount})</span>
           </div>
-
           {/* Contact Info */}
-          <div className="mb-2">
-            <strong className="text-gray-700 block mb-1">Phone:</strong>
-            <a href={`tel:${selectedDoctor.phone}`} className="text-blue-600 hover:underline">
+          <div className="mb-4">
+            <strong className="text-gray-900 font-bold block mb-1">Phone:</strong>
+            <a href={`tel:${selectedDoctor.phone}`} className="text-blue-600 hover:text-blue-700 hover:underline">
               {selectedDoctor.phone}
             </a>
           </div>
-
           {/* Location Info */}
-          <div className="mb-2">
-            <strong className="text-gray-700 block mb-1">Location:</strong>
+          <div className="mb-4">
+            <strong className="text-gray-900 font-bold block mb-1">Location:</strong>
             <p className="text-gray-600">{selectedDoctor.selectedAddress?.place_name || 'No location provided'}</p>
             {distance && <p className="text-sm text-gray-500 mt-1">{distance.toFixed(1)} km away</p>}
             {selectedDoctor.selectedAddress?.coordinates && (
               <button
                 onClick={() => setIsMapOpen((prev) => !prev)}
-                className="mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-2 rounded-full text-sm transition"
+                className="mt-2 inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1 px-3 rounded-md text-sm transition-colors"
               >
-                <MapPin className="inline-block mr-1 align-text-bottom w-4 h-4" />
+                <MapPin className="w-4 h-4" />
                 Show on Map
               </button>
             )}
           </div>
-
           {/* Make Appointment Button */}
           {(!auth.currentUser || selectedDoctor.uid !== auth.currentUser.uid) && (
             <button
               onClick={handleAppointmentClick}
-              className="mt-4 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
             >
               Make An Appointment
             </button>
           )}
-
           {/* Appointment Modal */}
           {isModalOpen && (
             <AppointmentModal
@@ -167,7 +159,6 @@ const Doctor: FC<{ params: Promise<{ id: string }> }> = ({ params }) => {
           )}
         </div>
       </div>
-
       {/* Map Viewer */}
       {selectedDoctor.selectedAddress?.coordinates && isMapOpen && (
         <div className="w-full md:max-w-md rounded-xl h-[532px] shadow-md overflow-hidden">

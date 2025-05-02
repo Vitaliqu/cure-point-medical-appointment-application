@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Pencil, Trash } from 'lucide-react';
+import { Clock, Pencil, Plus, Trash } from 'lucide-react';
 import { AvailableTimePickerProps, Slot } from '@/interfaces/interfaces';
+import useAddAvailableSlot from '../../hooks/useAddAvailableSlot';
 
 const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
   availableSlots,
@@ -12,49 +13,17 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
   const [editedTimes, setEditedTimes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedEditingTime, setSelectedEditingTime] = useState('');
 
-  const handleAddAvailableSlot = useCallback(() => {
-    if (!selectedDate || !selectedTime) {
-      setErrorMessage('Please select both date and time.');
-      setTimeout(() => setErrorMessage(null), 3000);
-      return;
-    }
-
-    const updatedSlots = availableSlots ? [...availableSlots] : []; // Handle null case
-    const existingSlotIndex = updatedSlots.findIndex((slot) => slot.date === selectedDate);
-
-    if (existingSlotIndex >= 0) {
-      const existingSlot = updatedSlots[existingSlotIndex];
-      if (!existingSlot.time.includes(selectedTime)) {
-        updatedSlots[existingSlotIndex] = {
-          ...existingSlot,
-          time: [...existingSlot.time, selectedTime].sort(),
-        };
-        onUpdateAvailableSlots(updatedSlots);
-      } else {
-        setSuccessMessage(null);
-        setErrorMessage('This time slot already exists for the selected date.');
-        setTimeout(() => setErrorMessage(null), 3000);
-        return;
-      }
-    } else {
-      const newSlot = { date: selectedDate, time: [selectedTime] };
-      onUpdateAvailableSlots([...updatedSlots, newSlot]);
-    }
-
-    setSelectedTime('');
-    setErrorMessage(null);
-    setSuccessMessage('Slot created successfully.');
-    setTimeout(() => setSuccessMessage(null), 3000);
-  }, [
-    availableSlots,
-    onUpdateAvailableSlots,
-    setErrorMessage,
-    setSuccessMessage,
+  const handleAddAvailableSlot = useAddAvailableSlot({
     selectedDate,
     selectedTime,
+    setErrorMessage,
+    setSuccessMessage,
+    availableSlots,
+    onUpdateAvailableSlots,
     setSelectedTime,
-  ]);
+  });
 
   const handleRemoveTime = useCallback(
     (slotDate: string, timeToRemove: string) => {
@@ -89,11 +58,11 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
   );
 
   const handleAddTimeInEdit = useCallback(() => {
-    if (selectedTime && !editedTimes.includes(selectedTime)) {
-      setEditedTimes([...editedTimes, selectedTime].sort());
-      setSelectedTime('');
+    if (selectedEditingTime && !editedTimes.includes(selectedEditingTime)) {
+      setEditedTimes([...editedTimes, selectedEditingTime].sort());
+      setSelectedEditingTime('');
     }
-  }, [editedTimes, selectedTime, setSelectedTime]);
+  }, [editedTimes, selectedEditingTime, setSelectedEditingTime]);
 
   const handleSaveEditedSlot = useCallback(() => {
     if (!editingSlot || !availableSlots) return;
@@ -122,55 +91,82 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
   );
 
   return (
-    <div className="mt-6">
-      <h2 className="text-lg font-semibold mb-4">Set Available Time</h2>
-      <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="border p-2 rounded"
-          disabled={editingSlot !== null}
-        />
-        <div className="flex gap-2 items-center">
-          <input
-            type="time"
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
-            className="border p-2 rounded"
-          />
+    <div className="bg-gray-50 mt-6 p-6 rounded-xl border border-gray-200">
+      <div className="flex items-center mb-4">
+        <Clock className="text-blue-600 mr-2" />
+        <h3 className="text-lg font-semibold text-gray-800">Availability Schedule</h3>
+      </div>
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
+            <input
+              type="date"
+              onChange={(e) => setSelectedDate(e.target.value)}
+              value={selectedDate}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Time</label>
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end">
           <button
             onClick={handleAddAvailableSlot}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            className={`flex items-center justify-center px-3 py-1.5 rounded-lg font-medium transition text-sm md:text-base bg-blue-600 hover:bg-blue-700 text-white`}
             disabled={editingSlot !== null}
           >
-            Add Slot
+            <Plus className="w-4 h-4 mr-2" />
+            Add Time Slot
           </button>
         </div>
       </div>
-
-      <div className="mt-4">
-        <h3 className="font-medium mb-2">Current Slots:</h3>
+      <div className="mt-2">
+        <h3 className="font-medium mb-3">Current Slots:</h3>
         {availableSlots === null || availableSlots.length === 0 ? (
           <p className="text-sm text-gray-500">No available slots yet.</p>
         ) : (
           <ul className="space-y-2">
             {availableSlots.map((slot) => (
-              <li key={slot.date} className="bg-gray-100 rounded-md p-3 flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-semibold">{slot.date}:</span>
-                  {slot.time.map((time) => (
-                    <span key={`${slot.date}-${time}`} className="inline-flex items-center mr-2">
-                      {time}
-                      <button
-                        onClick={() => handleRemoveTime(slot.date, time)}
-                        className="ml-1 text-red-500 hover:text-red-700 focus:outline-none"
-                        aria-label={`Remove ${time} from ${slot.date}`}
+              <li
+                key={slot.date}
+                className="bg-white p-4 flex-row flex justify-between rounded-lg border border-gray-200 "
+              >
+                <div className="flex flex-col justify-start">
+                  <span className="font-semibold">
+                    {new Date(slot.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                    :
+                  </span>
+                  <div className={'flex flex-wrap mt-2 gap-3'}>
+                    {slot.time.map((time) => (
+                      <span
+                        key={`${slot.date}-${time}`}
+                        className="flex items-center w-min justify-between bg-gray-50 border-gray-200 border px-3 py-1 rounded-lg"
                       >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </span>
-                  ))}
+                        {time}
+                        <button
+                          onClick={() => handleRemoveTime(slot.date, time)}
+                          className="ml-1 text-red-500 hover:text-red-700 focus:outline-none"
+                          aria-label={`Remove ${time} from ${slot.date}`}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -193,10 +189,17 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
           </ul>
         )}
       </div>
-
       {editingSlot && (
         <div className="mt-6 p-4 border rounded-md bg-gray-50">
-          <h3 className="font-semibold mb-2">Edit Slots for {editingSlot.date}</h3>
+          <h3 className="font-semibold mb-2">
+            Edit Slots for{' '}
+            {new Date(editingSlot.date).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </h3>
           <div className="mb-2">
             {editedTimes.map((time, index) => (
               <div key={`${editingSlot.date}-edit-${index}`} className="flex items-center gap-2 mb-1">
@@ -211,8 +214,8 @@ const AvailableTimePicker: React.FC<AvailableTimePickerProps> = ({
             <div className="flex gap-2 items-center">
               <input
                 type="time"
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
+                value={selectedEditingTime}
+                onChange={(e) => setSelectedEditingTime(e.target.value)}
                 className="border p-2 rounded text-sm"
               />
               <button

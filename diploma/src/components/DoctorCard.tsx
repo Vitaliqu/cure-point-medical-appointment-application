@@ -1,14 +1,18 @@
 import Image, { StaticImageData } from 'next/image';
-
-const DoctorCard = ({ image, name, specialty }: { image: StaticImageData; name: string; specialty: string }) => (
-  <div className="flex flex-col bg-white rounded-md shadow overflow-hidden flex-1">
-    <div className="relative w-full min-h-48">
-      <Image src={image} fill className="object-cover" alt={name} />
+interface DoctorCardProps {
+  image: StaticImageData;
+  name: string;
+  specialty: string;
+}
+const DoctorCard = ({ image, name, specialty }: DoctorCardProps) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden flex-1 min-w-[200px]">
+      <Image src={image} width={192} height={192} alt={name} className="w-full object-cover" />
+      <div className="p-4">
+        <h4 className="font-bold text-lg">{name}</h4>
+        <p className="text-blue-600">{specialty}</p>
+      </div>
     </div>
-    <div className="p-6">
-      <strong className="text-xl">{name}</strong>
-      <p className="text-blue-500">{specialty}</p>
-    </div>
-  </div>
-);
+  );
+};
 export default DoctorCard;
