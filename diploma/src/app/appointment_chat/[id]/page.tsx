@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Chat from '@/components/Chat';
 import useChatInitializer from '@/../../hooks/useChatInitializer';
-import fetchAppointmentData from '@/app/api/fetchAppointments/fetchAppointments';
+import fetchAllAppointmentData from '@/app/api/fetchAllAppointments/fetchAllAppointments';
 import { Appointment } from '@/interfaces/interfaces';
 import { auth } from '../../../../backend/lib/firebaseConfig';
 
@@ -17,7 +17,7 @@ const Appointment_Chat = ({ params }: { params: Promise<{ id: string }> }) => {
 
   useEffect(() => {
     const fetchAppointment = async () => {
-      const appointment = await fetchAppointmentData(resolvedParams.id);
+      const appointment = await fetchAllAppointmentData(resolvedParams.id);
       if (appointment) setFetchedAppointment(appointment);
     };
     fetchAppointment();

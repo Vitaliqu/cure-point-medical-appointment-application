@@ -127,7 +127,7 @@ const Doctor: FC<{ params: Promise<{ id: string }> }> = ({ params }) => {
           <div className="mb-4">
             <strong className="text-gray-900 font-bold block mb-1">Location:</strong>
             <p className="text-gray-600">{selectedDoctor.selectedAddress?.place_name || 'No location provided'}</p>
-            {distance && <p className="text-sm text-gray-500 mt-1">{distance.toFixed(1)} km away</p>}
+            {distance !== null && <p className="text-sm text-gray-500 mt-1">{distance.toFixed(1)} km away</p>}
             {selectedDoctor.selectedAddress?.coordinates && (
               <button
                 onClick={() => setIsMapOpen((prev) => !prev)}

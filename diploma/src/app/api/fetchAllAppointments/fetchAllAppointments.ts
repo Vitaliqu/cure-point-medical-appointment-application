@@ -2,7 +2,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../../backend/lib/firebaseConfig';
 import { Appointment } from '@/interfaces/interfaces';
 
-const fetchAppointmentData = async (appointmentId: string) => {
+const fetchAllAppointmentData = async (appointmentId: string) => {
   try {
     const userRef = doc(db, 'appointments', appointmentId);
     const userSnap = await getDoc(userRef);
@@ -17,4 +17,4 @@ const fetchAppointmentData = async (appointmentId: string) => {
   }
 };
 
-export default fetchAppointmentData;
+export default fetchAllAppointmentData;

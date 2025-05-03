@@ -6,7 +6,7 @@ import { UserType, Message, UseChatInitializerProps, UseChatInitializerResult } 
 import { auth } from '../backend/lib/firebaseConfig';
 import fetchUserData from '@/app/api/fetchUserData';
 import fetchMessages from '@/app/api/fetchMessages';
-import fetchAppointments from '@/app/api/fetchAppointments/fetchAppointments';
+import fetchAppointments from '@/app/api/fetchAllAppointments/fetchAllAppointments';
 
 const useChatInitializer = ({ paramsId, isAppointmentChat }: UseChatInitializerProps): UseChatInitializerResult => {
   const [user, setUser] = useState<User | null>(null);

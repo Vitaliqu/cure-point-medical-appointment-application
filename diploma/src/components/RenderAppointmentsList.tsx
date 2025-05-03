@@ -1,21 +1,24 @@
-'use client';
-import { Appointment, PaymentData, RenderAppointmentsListProps, UserType, Rating } from '@/interfaces/interfaces';
-import Image from 'next/image';
-import { User, Star } from 'lucide-react';
-import { format } from 'date-fns';
-import React, { useState, FC, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState, FC } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { User } from 'lucide-react';
+import { db } from '../../backend/lib/firebaseConfig';
+import { Appointment, RenderAppointmentsListProps, Rating } from '@/interfaces/interfaces';
+// Custom hooks
 import useApproveAppointmentHandler from '../../hooks/useApproveAppointmentHandler';
 import useDeclineAppointmentHandler from '../../hooks/useDeclineAppointmentHandler';
 import useCreatePaymentHandler from '../../hooks/useCreatePaymentHandler';
-import { collection, doc, getDocs, or, query, setDoc, updateDoc, where } from 'firebase/firestore';
-import { db } from '../../backend/lib/firebaseConfig';
 import useEditPaymentHandler from '../../hooks/useEditPaymentHandler';
 import useCancelPaymentHandler from '../../hooks/useCancelPaymentHandler';
-import StripePayment from '@/components/StripePayment';
 import usePaymentSuccess from '../../hooks/usePaymentSuccess';
-import fetchUsersData from '@/app/api/fetchUsersData';
-
+import rateAppointment from '../../hooks/rateAppointment';
+import useFinishAppointment from '../../hooks/useFinishAppointment';
+import useFetchAppointments from '@/app/api/fetchAppointments';
+// Components
+import AppointmentCard from './AppointmentCard';
+import PaymentModal from './PaymentModal';
+import StripePayment from '@/components/StripePayment';
+import NotificationBanner from '@/components/NotificationBanner';
 const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   activeTab,
   payments,
@@ -24,22 +27,40 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   users,
   selectedDate,
 }) => {
-  const isDoctor = !!currentUser && users.some((user) => user.uid === currentUser.uid && user.role === 'doctor');
-  const router = useRouter();
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [activeAppointments, setActiveAppointments] = useState<Appointment[]>([]);
   const [pastAppointments, setPastAppointments] = useState<Appointment[]>([]);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const router = useRouter();
+  const isDoctor = !!currentUser && users.some((user) => user.uid === currentUser.uid && user.role === 'doctor');
+  // State management
   const [loading, setLoading] = useState(true);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalPaymentAmount, setModalPaymentAmount] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [amountInput, setAmountInput] = useState<number>(0);
-  const [ratedAppointments, setRatedAppointments] = useState<string[]>([]);
-  const [userRatings, setUserRatings] = useState<{ [appointmentId: string]: number }>({});
-
+  // Payment and modal state
+  const [paymentState, setPaymentState] = useState({
+    isPaymentModalOpen: false,
+    isEditModalOpen: false,
+    isEditing: false,
+    selectedAppointment: null as Appointment | null,
+    amountInput: 0,
+    modalPaymentAmount: null as number | null,
+  });
+  // Rating state
+  const [ratingState, setRatingState] = useState({
+    ratedAppointments: [] as string[],
+    userRatings: {} as {
+      [appointmentId: string]: number;
+    },
+  });
+  // Notification handlers
+  const showError = useCallback((message: string) => {
+    setPaymentError(message);
+    setTimeout(() => setPaymentError(null), 3000);
+  }, []);
+  const showSuccess = useCallback((message: string) => {
+    setPaymentSuccess(message);
+    setTimeout(() => setPaymentSuccess(null), 3000);
+  }, []);
+  // Custom hooks initialization
   const handleApprove = useApproveAppointmentHandler({ setActiveAppointments, setPastAppointments });
   const handleDecline = useDeclineAppointmentHandler({
     appointmentsToRender: activeTab === 'active' ? activeAppointments : pastAppointments,
@@ -49,84 +70,27 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
   });
   const handleCreatePayment = useCreatePaymentHandler({
     currentUser,
-    paymentAmount: amountInput,
+    paymentAmount: paymentState.amountInput,
     router,
-    onError: (errorMessage) => {
-      setPaymentError(errorMessage);
-      setTimeout(() => setPaymentError(null), 3000);
-    },
-    onSuccess: (successMessage) => {
-      setPaymentSuccess(successMessage);
-      setTimeout(() => setPaymentSuccess(null), 3000);
-    },
+    onError: showError,
+    onSuccess: showSuccess,
     setPayments,
   });
-
-  const rateAppointment = async (appointment: Appointment, rating: number) => {
-    if (!currentUser || currentUser.role !== 'patient') {
-      console.error('Only patients can rate appointments.');
-      return;
-    }
-    try {
-      const existingRatingQuery = query(
-        collection(db, 'ratings'),
-        where('appointment_id', '==', appointment.id),
-        where('patient_id', '==', appointment.patientId),
-      );
-      const existingRatingSnapshot = await getDocs(existingRatingQuery);
-
-      if (!existingRatingSnapshot.empty) {
-        const ratingDoc = existingRatingSnapshot.docs[0].ref;
-        await updateDoc(ratingDoc, { rating: rating, created_at: new Date() });
-        setPaymentSuccess('Rating updated successfully!');
-      } else {
-        const ratingData = {
-          appointment_id: appointment.id,
-          doctor_id: appointment.doctorId,
-          patient_id: appointment.patientId,
-          rating: rating,
-          created_at: new Date(),
-        };
-        const ratingDocRef = doc(collection(db, 'ratings'));
-        await setDoc(ratingDocRef, ratingData);
-        setPaymentSuccess('Appointment rated successfully!');
-      }
-      setRatedAppointments((prev) => [...prev, appointment.id]);
-      setUserRatings((prev) => ({ ...prev, [appointment.id]: rating }));
-      setTimeout(() => setPaymentSuccess(null), 3000);
-    } catch (error) {
-      console.error('Error rating appointment:', error);
-      setPaymentError('Failed to rate appointment.');
-      setTimeout(() => setPaymentError(null), 3000);
-    }
-  };
-
   const handleEditPayment = useEditPaymentHandler({
     currentUser,
-    paymentAmount: amountInput,
+    paymentAmount: paymentState.amountInput,
     router,
-    onError: (errorMessage) => {
-      setPaymentError(errorMessage);
-      setTimeout(() => setPaymentError(null), 3000);
-    },
-    onSuccess: (successMessage) => {
-      setPaymentSuccess(successMessage);
-      setTimeout(() => setPaymentSuccess(null), 3000);
-    },
+    onError: showError,
+    onSuccess: showSuccess,
     setPayments,
   });
+
   const handleCancelPayment = useCancelPaymentHandler({
     currentUser,
-    paymentAmount: amountInput,
+    paymentAmount: paymentState.amountInput,
     router,
-    onError: (errorMessage) => {
-      setPaymentError(errorMessage);
-      setTimeout(() => setPaymentError(null), 3000);
-    },
-    onSuccess: (successMessage) => {
-      setPaymentSuccess(successMessage);
-      setTimeout(() => setPaymentSuccess(null), 3000);
-    },
+    onError: showError,
+    onSuccess: showSuccess,
     setPayments,
   });
   const handlePaymentSuccess = usePaymentSuccess({
@@ -134,98 +98,100 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
     router,
     setPayments,
   });
-  const finishAppointment = async (appointmentId: string) => {
-    try {
-      const appointmentRef = doc(db, 'appointments', appointmentId);
-      await updateDoc(appointmentRef, { status: 'finished' });
-      fetchAppointments(currentUser, selectedDate);
-      setPaymentSuccess('Appointment finished successfully!');
-      setTimeout(() => setPaymentSuccess(null), 3000);
-    } catch (err: unknown) {
-      setPaymentError(`Failed to finish appointment! ${err}`);
-      setTimeout(() => setPaymentError(null), 3000);
-    }
-  };
-  const fetchAppointments = useCallback(
-    async (currentUser: UserType | null, selectedDate: Date | null) => {
-      if (!currentUser) return;
-      const users: UserType[] | undefined = await fetchUsersData();
-      try {
-        const appointmentsRef = collection(db, 'appointments');
-        const { role: userRole, uid: userId } = currentUser;
-        const appointmentsQuery =
-          userRole === 'doctor'
-            ? query(appointmentsRef, or(where('doctorId', '==', userId), where('patientId', '==', userId)))
-            : query(appointmentsRef, where('patientId', '==', userId));
-        const fetchedAppointments = (await getDocs(appointmentsQuery)).docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          patientName: users?.find((user) => user.uid === doc.data().patientId)?.name,
-          doctorName: users?.find((user) => user.uid === doc.data().doctorId)?.name,
-          date: (doc.data().date as { toDate: () => Date }).toDate(),
-        })) as Appointment[];
-        const paymentsRef = collection(db, 'payments');
-        const fetchedPayments = (await getDocs(paymentsRef)).docs.map((doc) => doc.data() as PaymentData);
-        setPayments(fetchedPayments);
-        const filteredByDate = selectedDate
-          ? fetchedAppointments.filter((appt) => appt.date.getDate() === selectedDate.getDate() + 1)
-          : fetchedAppointments;
-        const sortedAppointments = filteredByDate.sort((a, b) => {
-          if (a.status === 'pending' && b.status !== 'pending') return -1;
-          if (a.status !== 'pending' && b.status === 'pending') return 1;
-          if (a.status === 'approved' && (b.status === 'declined' || b.status === 'finished')) return -1;
-          if ((a.status === 'declined' || a.status === 'finished') && b.status === 'approved') return 1;
-          if (a.status === 'declined' && b.status === 'finished') return 1;
-          if (a.status === 'finished' && b.status === 'declined') return -1;
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        });
+  const finishAppointment = useFinishAppointment({
+    currentUser,
+    selectedDate,
+    setPayments,
+    setActiveAppointments,
+    setPastAppointments,
+    setLoading,
+    setPaymentSuccess,
+    setPaymentError,
+  });
+  // Fetch appointments function returned by your custom hook
+  const fetchAppointmentsHandler = useFetchAppointments({
+    setPayments,
+    setActiveAppointments,
+    setPastAppointments,
+    setLoading,
+    currentUser,
+    selectedDate,
+  });
 
-        setActiveAppointments(
-          sortedAppointments.filter((appt) => appt.status === 'pending' || appt.status === 'approved'),
-        );
-        setPastAppointments(
-          sortedAppointments.filter((appt) => appt.status === 'declined' || appt.status === 'finished'),
-        );
-      } catch (error) {
-        console.error('Error fetching appointments:', error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setPayments],
-  );
-
+  // Memoize the fetchAppointments function with its dependencies
+  const fetchAppointments = useCallback(fetchAppointmentsHandler, [
+    setPayments,
+    setActiveAppointments,
+    setPastAppointments,
+    setLoading,
+    currentUser,
+    selectedDate,
+    fetchAppointmentsHandler,
+  ]);
+  // Fetch ratings
   useEffect(() => {
     const fetchRatings = async () => {
       if (currentUser?.role === 'patient') {
         const ratingsQuery = query(collection(db, 'ratings'), where('patient_id', '==', currentUser.uid));
         const ratingsSnapshot = await getDocs(ratingsQuery);
         const fetchedRatings: Rating[] = [];
-        const appointmentRatings: { [appointmentId: string]: number } = {};
+        const appointmentRatings: {
+          [appointmentId: string]: number;
+        } = {};
         ratingsSnapshot.forEach((doc) => {
-          const ratingData = { id: doc.id, ...doc.data() } as Rating;
+          const ratingData = {
+            id: doc.id,
+            ...doc.data(),
+          } as Rating;
           fetchedRatings.push(ratingData);
           appointmentRatings[ratingData.appointment_id] = ratingData.rating;
         });
-        setRatedAppointments(fetchedRatings.map((r) => r.appointment_id));
-        setUserRatings(appointmentRatings);
+        setRatingState({
+          ratedAppointments: fetchedRatings.map((r) => r.appointment_id),
+          userRatings: appointmentRatings,
+        });
       } else {
-        setRatedAppointments([]);
-        setUserRatings({});
+        setRatingState({
+          ratedAppointments: [],
+          userRatings: {},
+        });
       }
     };
-
     fetchRatings();
   }, [currentUser]);
-
   useEffect(() => {
     if (currentUser) {
-      fetchAppointments(currentUser, selectedDate);
+      fetchAppointments();
     }
   }, [currentUser, fetchAppointments, selectedDate]);
-
-  const appointmentsToRender = activeTab === 'active' ? activeAppointments : pastAppointments;
-
+  // Modal handlers
+  const openPaymentModal = (appointment: Appointment, amount: number) => {
+    setPaymentState((prev) => ({
+      ...prev,
+      isPaymentModalOpen: true,
+      selectedAppointment: appointment,
+      modalPaymentAmount: amount,
+    }));
+  };
+  const openEditModal = (appointment: Appointment, amount: number, isEditing = false) => {
+    setPaymentState((prev) => ({
+      ...prev,
+      isEditModalOpen: true,
+      selectedAppointment: appointment,
+      amountInput: amount,
+      isEditing,
+    }));
+  };
+  const closeModals = () => {
+    setPaymentState((prev) => ({
+      ...prev,
+      isPaymentModalOpen: false,
+      isEditModalOpen: false,
+      selectedAppointment: null,
+      isEditing: false,
+    }));
+  };
+  // Empty state renderer
   const renderEmptyState = useCallback(
     () => (
       <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
@@ -246,353 +212,102 @@ const RenderAppointmentsList: FC<RenderAppointmentsListProps> = ({
     ),
     [activeTab, isDoctor],
   );
-
-  if ((loading || !currentUser) && appointmentsToRender.length === 0) {
+  // Loading state
+  if (loading || !currentUser) {
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500"></div>
       </div>
     );
   }
-
-  if (appointmentsToRender.length === 0) {
+  // Empty state
+  if (
+    (activeTab === 'active' && activeAppointments.length === 0) ||
+    (activeTab === 'history' && pastAppointments.length === 0)
+  ) {
     return renderEmptyState();
   }
-
+  // Handle payment confirmation
+  const handlePaymentConfirmation = () => {
+    if (paymentState.selectedAppointment) {
+      if (paymentState.isEditing) handleEditPayment(paymentState.selectedAppointment);
+      else handleCreatePayment(paymentState.selectedAppointment);
+      closeModals();
+    }
+  };
   return (
     <div>
-      {paymentError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline ml-2">{paymentError}</span>
-          <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-            <svg
-              onClick={() => setPaymentError(null)}
-              className="fill-current h-6 w-6 text-red-500"
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
-              <title>Close</title>
-              <path
-                fillRule="evenodd"
-                d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </span>
-        </div>
-      )}
-      {paymentSuccess && (
-        <div
-          className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
-          role="alert"
-        >
-          <strong className="font-bold">Success!</strong>
-          <span className="block sm:inline ml-2">{paymentSuccess}</span>
-          <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-            <svg
-              onClick={() => setPaymentSuccess(null)}
-              className="fill-current h-6 w-6 text-green-500"
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
-              <title>Close</title>
-              <path
-                fillRule="evenodd"
-                d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </span>
-        </div>
-      )}
-      {isPaymentModalOpen && modalPaymentAmount && selectedAppointment && (
+      <NotificationBanner
+        error={paymentError}
+        success={paymentSuccess}
+        onClose={() => {
+          setPaymentError(null);
+          setPaymentSuccess(null);
+        }}
+      />
+      {paymentState.isPaymentModalOpen && paymentState.modalPaymentAmount && paymentState.selectedAppointment && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex overflow-scroll justify-center items-center z-50 -left-2 m-0">
           <StripePayment
-            amount={modalPaymentAmount}
-            setIsPaymentModalOpen={setIsPaymentModalOpen}
-            onPaymentSuccess={() => handlePaymentSuccess(selectedAppointment)}
+            amount={paymentState.modalPaymentAmount}
+            setIsPaymentModalOpen={(isOpen) =>
+              setPaymentState((prev) => ({
+                ...prev,
+                isPaymentModalOpen: isOpen,
+              }))
+            }
+            onPaymentSuccess={() => handlePaymentSuccess(paymentState.selectedAppointment!)}
           />
         </div>
       )}
       <ul className="space-y-4">
-        {appointmentsToRender.map((appointment) => {
-          const isRated = ratedAppointments.includes(appointment.id);
-          const currentRating = userRatings[appointment.id];
-          const patient = users.find((user) => user.uid === appointment.patientId);
-          const doctor = users.find((user) => user.uid === appointment.doctorId);
-          const appointmentDate = appointment.date;
-          const paymentForAppointment = payments.find((payment) => payment.appointmentId === appointment.id);
-
-          const appointmentWith = appointment.patientId === currentUser.uid ? 'Doctor' : 'Patient';
-          const otherUserName =
-            (appointment.patientId === currentUser.uid && appointment.doctorName) ||
-            appointment.patientName ||
-            'Unknown';
-          const otherUserPhotoURL = currentUser.uid === appointment.doctorId ? patient?.photoURL : doctor?.photoURL;
-          const location = doctor?.selectedAddress?.place_name;
-
-          return (
-            <li
-              key={appointment.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-shadow hover:shadow-lg"
-            >
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {otherUserPhotoURL ? (
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                        <Image src={otherUserPhotoURL} alt={otherUserName} layout="fill" objectFit="cover" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100">
-                        <User className="text-gray-400" size={20} />
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {appointmentWith} <span className="font-semibold text-indigo-600">{otherUserName}</span>
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {format(appointmentDate, 'MMMM d, yyyy')} at {format(appointmentDate, 'HH:mm')}
-                      </p>
-                    </div>
-                  </div>
-                  {appointment.status === 'pending' && appointment.patientId === currentUser.uid && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      Pending
-                    </span>
-                  )}
-                  {appointment.status === 'approved' && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Approved
-                    </span>
-                  )}
-                  {appointment.status === 'declined' && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Declined
-                    </span>
-                  )}
-                  {appointment.status === 'finished' && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                      Finished
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2">
-                  {location && (
-                    <p className="text-sm text-gray-500">
-                      Address: <span className="font-medium">{location}</span>
-                    </p>
-                  )}
-                  {paymentForAppointment && (
-                    <div className="mt-2 flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                        Payment: ${paymentForAppointment.amount}
-                        <span
-                          className={`ml-1 rounded-full w-2 h-2 inline-block ${
-                            paymentForAppointment.status === 'pending' ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          title={paymentForAppointment.status === 'pending' ? 'Pending' : 'Paid'}
-                        ></span>
-                      </span>
-                      {isDoctor && paymentForAppointment.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setSelectedAppointment(appointment);
-                              setAmountInput(paymentForAppointment.amount);
-                              setIsEditing(true);
-                              setIsModalOpen(true);
-                            }}
-                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-50 rounded-full hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleCancelPayment(appointment)}
-                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-full hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                      {!isDoctor && paymentForAppointment.status === 'pending' && (
-                        <button
-                          onClick={() => {
-                            setIsPaymentModalOpen(true);
-                            setSelectedAppointment(appointment);
-                            setModalPaymentAmount(paymentForAppointment.amount);
-                          }}
-                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        >
-                          Pay
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 flex space-x-2">
-                  {isDoctor &&
-                    appointment.doctorId === currentUser.uid &&
-                    appointment.status === 'pending' &&
-                    activeTab === 'active' && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(appointment.id)}
-                          className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleDecline(appointment.id, appointmentDate)}
-                          className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                          Decline
-                        </button>
-                      </>
-                    )}
-                  {currentUser?.role === 'patient' && appointment.status === 'finished' && (
-                    <div className="flex items-center space-x-2">
-                      {isRated ? (
-                        <>
-                          <span className="text-sm text-gray-500">Your rating:</span>
-                          {[1, 2, 3, 4, 5].map((rate) => (
-                            <Star
-                              key={rate}
-                              className={`w-5 h-5 ${rate <= currentRating ? 'text-yellow-500' : 'text-gray-300'}`}
-                            />
-                          ))}
-                          <button
-                            onClick={() => {
-                              setRatedAppointments(ratedAppointments.filter((id) => id !== appointment.id));
-                              setUserRatings({ ...userRatings, [appointment.id]: 0 });
-                            }}
-                            className="ml-2 text-sm text-indigo-600 hover:text-indigo-800 focus:outline-none"
-                          >
-                            (Change rating)
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {[1, 2, 3, 4, 5].map((rate) => (
-                            <button
-                              key={rate}
-                              onClick={() => rateAppointment(appointment, rate)}
-                              className={`text-yellow-500 hover:text-yellow-700 focus:outline-none`}
-                            >
-                              <Star className="w-5 h-5" />
-                            </button>
-                          ))}
-                          <span className="text-sm text-gray-500">(Rate this appointment)</span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {(appointment.status === 'approved' || appointment.status === 'finished') && (
-                    <button
-                      onClick={() => router.push(`/appointment_chat/${appointment.id}`)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Chat
-                    </button>
-                  )}
-                  {isDoctor && appointment.status === 'approved' && (
-                    <button
-                      onClick={() => finishAppointment(appointment.id)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Finish Appointment
-                    </button>
-                  )}
-                  {!paymentForAppointment &&
-                    isDoctor &&
-                    appointment.doctorId === currentUser?.uid &&
-                    (appointment.status === 'approved' || appointment.status === 'finished') && (
-                      <button
-                        onClick={() => {
-                          setAmountInput(0);
-                          setSelectedAppointment(appointment);
-                          setIsModalOpen(true);
-                        }}
-                        className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Create Payment
-                      </button>
-                    )}
-                </div>
-              </div>
-
-              {isModalOpen && selectedAppointment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10">
-                  <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      {isEditing ? 'Edit Payment Amount' : 'Set Payment Amount'}
-                    </h2>
-                    <div className="mb-4">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                        Amount
-                      </label>
-                      <div className="mt-1 relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 sm:text-sm">
-                          $
-                        </div>
-                        <input
-                          type="number"
-                          name="amount"
-                          id="amount"
-                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 py-3 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                          placeholder="0.00"
-                          value={amountInput}
-                          onChange={(e) => setAmountInput(Number(e.target.value))}
-                          min={0}
-                        />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 sm:text-sm">
-                          USD
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setIsModalOpen(false);
-                        }}
-                        type="button"
-                        className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (selectedAppointment) {
-                            if (isEditing) {
-                              handleEditPayment(selectedAppointment);
-                              setIsModalOpen(false);
-                              setIsEditing(false);
-                            } else {
-                              handleCreatePayment(selectedAppointment);
-                              setIsModalOpen(false);
-                            }
-                          }
-                        }}
-                        type="button"
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Confirm
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
+        {activeTab === 'active' || activeTab === 'history'
+          ? (activeTab === 'active' ? activeAppointments : pastAppointments).map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                currentUser={currentUser}
+                users={users}
+                payments={payments}
+                ratingState={ratingState}
+                setRatingState={setRatingState}
+                isDoctor={isDoctor}
+                activeTab={activeTab}
+                onApprove={handleApprove}
+                onDecline={handleDecline}
+                onCancelPayment={handleCancelPayment}
+                onFinishAppointment={finishAppointment}
+                onOpenPaymentModal={openPaymentModal}
+                onOpenEditModal={openEditModal}
+                onRate={(appointment, rate) => {
+                  setRatingState((prev) => ({
+                    ratedAppointments: [...prev.ratedAppointments, appointment.id],
+                    userRatings: {
+                      ...prev.userRatings,
+                      [appointment.id]: rate,
+                    },
+                  }));
+                  rateAppointment(currentUser, setPaymentSuccess, setPaymentError, appointment, rate);
+                }}
+                router={router}
+              />
+            ))
+          : null}
       </ul>
+      {paymentState.isEditModalOpen && paymentState.selectedAppointment && (
+        <PaymentModal
+          isEditing={paymentState.isEditing}
+          amount={paymentState.amountInput}
+          onAmountChange={(amount) =>
+            setPaymentState((prev) => ({
+              ...prev,
+              amountInput: amount,
+            }))
+          }
+          onCancel={closeModals}
+          onConfirm={handlePaymentConfirmation}
+        />
+      )}
     </div>
   );
 };
-
 export default RenderAppointmentsList;

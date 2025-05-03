@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback, ReactNode } from 'react';
-import { User, MapPin, Phone, Edit2, LogOut, MessageCircle, Map } from 'lucide-react';
+import { User, MapPin, Phone, Edit2, LogOut } from 'lucide-react';
 import { auth } from '../../../backend/lib/firebaseConfig';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -94,16 +94,31 @@ const Profile = () => {
   }
 
   return (
-    <div className="h-full">
-      <div className="max-w-6xl flex justify-center mx-auto p-0 md:p-8">
+    <div className="">
+      <div className="max-w-6xl flex justify-center h-[calc(100dvh-4rem)] mx-auto p-0 md:p-4">
         <div
-          className={`${user.role === 'patient' && 'max-w-[42rem]'} bg-white rounded-none md:rounded-xl shadow-xl overflow-hidden`}
+          className={`${user.role === 'patient' && 'max-w-[42rem]'} bg-white rounded-none md:rounded-xl shadow-xl h-min overflow-hidden`}
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-white">My Profile</h1>
+              <div className={'w-full'}>
+                <div className={'flex flex-row items-center justify-between'}>
+                  <h1 className="text-2xl font-bold text-white">My Profile</h1>
+                  <div className="w-auto">
+                    <button
+                      onClick={editing ? handleSaveProfileChanges : () => setEditing(true)}
+                      className={`flex items-center justify-center w-full px-3 py-2 rounded-lg font-medium ${
+                        editing
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      } transition text-sm md:text-base`}
+                    >
+                      {editing ? 'Save Changes' : 'Edit'}
+                    </button>
+                  </div>
+                </div>
+
                 <p className="text-blue-100 mt-1">Manage your account information and availability</p>
               </div>
             </div>
@@ -124,7 +139,7 @@ const Profile = () => {
               <span className="block sm:inline"> {successMessage}</span>
             </div>
           )}
-          <div className="p-4 md:p-8">
+          <div className="p-4">
             <div className={`flex flex-col ${user.role === 'doctor' && 'lg:flex-row'} gap-0 md:gap-6 lg:gap-8`}>
               {/* Left Column - Profile Photo */}
               <div className={`${user.role === 'doctor' && 'lg:w-1/3'} flex flex-col items-center`}>
@@ -169,7 +184,7 @@ const Profile = () => {
                       ))}
                     </div>
                   )}
-                  <div className="w-full mt-8 space-y-5">
+                  <div className="w-full mt-4 space-y-5">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Address</label>
                       <div className="relative">
@@ -223,47 +238,13 @@ const Profile = () => {
 
               {/* Right Column - Profile Details */}
               <div className={`${user.role === 'doctor' && 'lg:w-2/3'}`}>
-                <div className="mt-6 flex flex-col gap-y-4 sm:flex-row sm:gap-x-8">
-                  <div className="w-full">
-                    <button
-                      onClick={() => router.push('/users')}
-                      className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Messages
-                    </button>
-                  </div>
+                <div className="mt-3 flex flex-col gap-y-4 sm:flex-row sm:gap-x-4">
                   <div className="w-full">
                     <button
                       onClick={() => router.push('/appointments')}
                       className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
                     >
                       Appointments
-                    </button>
-                  </div>
-                  <div className="w-full">
-                    <button
-                      onClick={() => router.push('/map')}
-                      className="flex items-center justify-center px-4 py-3 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
-                    >
-                      <Map className="w-4 h-4 mr-2" />
-                      View Map
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-col gap-y-4 sm:flex-row sm:gap-x-8">
-                  <div className="w-full">
-                    <button
-                      onClick={editing ? handleSaveProfileChanges : () => setEditing(true)}
-                      className={`flex items-center justify-center w-full px-4 py-3 rounded-lg font-medium ${
-                        editing
-                          ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      } transition text-sm md:text-base`}
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      {editing ? 'Save Changes' : 'Edit Profile'}
                     </button>
                   </div>
                   <div className="w-full">

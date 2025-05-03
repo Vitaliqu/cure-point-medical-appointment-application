@@ -2,6 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 import React, { Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from 'firebase/auth';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export interface Slot {
   date: string;
@@ -142,4 +143,59 @@ export interface PaymentHandlerProps {
   onError: (errorMessage: string) => void;
   onSuccess: (successMessage: string) => void;
   setPayments: Dispatch<SetStateAction<PaymentData[]>>;
+}
+export interface NotificationBannerProps {
+  error: string | null;
+  success: string | null;
+  onClose: () => void;
+}
+
+export interface UseFinishAppointmentProps {
+  currentUser: UserType | null;
+  selectedDate: Date | null;
+  setPayments: Dispatch<SetStateAction<PaymentData[]>>;
+  setActiveAppointments: Dispatch<SetStateAction<Appointment[]>>;
+  setPastAppointments: Dispatch<SetStateAction<Appointment[]>>;
+  setLoading: Dispatch<SetStateAction<boolean>>;
+  setPaymentSuccess: Dispatch<SetStateAction<string | null>>;
+  setPaymentError: Dispatch<SetStateAction<string | null>>;
+}
+
+export interface AppointmentCardProps {
+  appointment: Appointment;
+  currentUser: UserType;
+  users: UserType[];
+  payments: PaymentData[];
+  ratingState: {
+    ratedAppointments: string[];
+    userRatings: {
+      [appointmentId: string]: number;
+    };
+  };
+  setRatingState: React.Dispatch<
+    React.SetStateAction<{
+      ratedAppointments: string[];
+      userRatings: {
+        [appointmentId: string]: number;
+      };
+    }>
+  >;
+  isDoctor: boolean;
+  activeTab: string;
+  onApprove: (id: string) => void;
+  onDecline: (id: string, date: Date) => void;
+  onCancelPayment: (appointment: Appointment) => void;
+  onFinishAppointment: (id: string) => void;
+  onOpenPaymentModal: (appointment: Appointment, amount: number) => void;
+  onOpenEditModal: (appointment: Appointment, amount: number, isEditing: boolean) => void;
+  onRate: (appointment: Appointment, rate: number) => void;
+  router: AppRouterInstance;
+}
+
+export interface RatingComponentProps {
+  appointmentId: string;
+  isRated: boolean;
+  currentRating?: number;
+  onRate: (rate: number) => void;
+  onChangeRating: () => void;
 }

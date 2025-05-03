@@ -1,6 +1,6 @@
 'use client';
 import React, { FC, useEffect, useState } from 'react';
-import { User, Star, MapPin, Calendar, Filter, Award, ChevronDown, Clock, ChevronRight } from 'lucide-react';
+import { User, Star, MapPin, Calendar, Filter, Award, ChevronDown, Clock, ChevronRight, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -42,11 +42,19 @@ const Doctors: FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userData = await fetchUserData(user.uid);
-        if (userData) setSelectedAddress(userData.selectedAddress);
+        const savedAddress = localStorage.getItem('selectedAddress');
+        if (savedAddress) {
+          setSelectedAddress(JSON.parse(savedAddress));
+        } else if (userData && userData.selectedAddress) {
+          setSelectedAddress(userData.selectedAddress);
+          localStorage.setItem('selectedAddress', JSON.stringify(userData.selectedAddress));
+        }
       }
     });
+
     return () => unsubscribe();
   }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -74,6 +82,12 @@ const Doctors: FC = () => {
     };
     fetchData();
   }, [selectedAddress]);
+  useEffect(() => {
+    if (selectedAddress) {
+      localStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+    }
+  }, [selectedAddress]);
+
   const handleDoctorSelect = (doctor: UserType) => {
     if (!auth.currentUser) return router.push('/authorisation');
     setSelectedDoctor(doctor);
@@ -197,10 +211,27 @@ const Doctors: FC = () => {
             </div>
           </div>
           <div className="p-2 md:p-6 flex-grow">
-            <div className="mb-4">
+            <div className="mb-4 flex flex-row justify-between items-center">
               <p className="text-gray-600 ml-1">
                 {filteredUsers.length} {filteredUsers.length === 1 ? 'doctor' : 'doctors'} found
               </p>
+              <div className="w-auto">
+                <button
+                  onClick={() => {
+                    console.log(selectedAddress?.coordinates);
+                    const doctorIds = filteredUsers.map((user) => user.uid);
+                    const currentLocation = {
+                      lat: selectedAddress?.coordinates[0],
+                      lng: selectedAddress?.coordinates[1],
+                    };
+                    router.push(`/map/?doctors=${doctorIds}&lat=${currentLocation.lat}&lng=${currentLocation.lng}`);
+                  }}
+                  className="flex items-center justify-center px-3 py-2 w-full h-full rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm md:text-base"
+                >
+                  <Map className="w-4 h-4 mr-2" />
+                  View Map
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               {filteredUsers.length === 0 ? (

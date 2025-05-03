@@ -67,13 +67,6 @@ const MapViewer = ({
         justify-content: center;
         align-items: center;
       `;
-
-      // el.addEventListener('click', () => {
-      //   if (marker.properties.uid !== currentUser.uid) {
-      //     router.push(`/direct/${marker.properties.uid}`);
-      //   }
-      // });
-
       new mapboxgl.Marker(el).setLngLat(marker.geometry.coordinates).addTo(mapRef.current!);
     });
 

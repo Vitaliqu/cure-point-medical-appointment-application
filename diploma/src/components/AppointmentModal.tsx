@@ -58,6 +58,14 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   const handleConfirm = () => {
     confirmAppointment(appointmentDate, doctor, selectedSlot);
   };
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   if (!doctor) return null;
   if (successMessage) {
     return (
@@ -76,7 +84,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   }
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl h-[80dvh] flex flex-col overflow-hidden">
+        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-xl font-bold text-gray-900">Book Appointment</h3>
           <button
@@ -87,7 +96,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-6">
+
+        {/* Scrollable Content */}
+        <div className="p-6 flex-1 overflow-y-auto">
           {/* Doctor Info */}
           <div className="flex items-center space-x-4 mb-6">
             <div className="h-16 w-16 relative rounded-full overflow-hidden bg-gray-100">
@@ -104,14 +115,16 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
               <p className="text-gray-500 text-sm">{doctor.fields?.join(', ')}</p>
             </div>
           </div>
+
           {/* Error Message */}
           {errorMessage && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <p className="text-sm">{errorMessage}</p>
             </div>
           )}
+
           {/* Available Slots */}
-          <div className="space-y-6 max-h-[400px] overflow-y-auto">
+          <div className="space-y-6">
             {sortedAvailableSlots.length > 0 ? (
               sortedAvailableSlots.map(({ date, time }) => {
                 const formattedDate = new Date(date);
@@ -134,7 +147,11 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
                             <button
                               key={t}
                               onClick={() => handleSelect(date, t)}
-                              className={`py-2 px-1 text-center text-sm rounded-lg border transition-colors ${isSelected ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:border-blue-300'}`}
+                              className={`py-2 px-1 text-center text-sm rounded-lg border transition-colors ${
+                                isSelected
+                                  ? 'bg-blue-50 border-blue-500 text-blue-700'
+                                  : 'border-gray-200 hover:border-blue-300'
+                              }`}
                             >
                               <Clock className="w-4 h-4 mx-auto mb-1" />
                               {t}
@@ -153,7 +170,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             )}
           </div>
         </div>
-        {/* Actions */}
+
+        {/* Footer / Actions */}
         <div className="p-6 border-t bg-gray-50 rounded-b-2xl">
           <div className="flex flex-col sm:flex-row gap-3">
             <button
