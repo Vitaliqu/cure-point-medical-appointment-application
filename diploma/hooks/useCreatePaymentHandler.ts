@@ -25,7 +25,7 @@ const useCreatePaymentHandler = ({
           status: 'pending',
           createdAt: new Date(),
         };
-        if (paymentData.amount === 0) {
+        if (paymentAmount === 0) {
           onError('Payment Amount can not be zero!');
           return;
         }

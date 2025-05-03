@@ -23,7 +23,10 @@ const useEditPaymentHandler = ({
           onError('Only doctor can edit payment amount');
           return;
         }
-
+        if (paymentAmount === 0) {
+          onError('Payment Amount can not be zero!');
+          return;
+        }
         if (!paymentSnapshot.exists()) {
           onError('Payment record does not exist');
           return;
