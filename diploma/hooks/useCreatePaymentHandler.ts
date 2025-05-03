@@ -25,6 +25,10 @@ const useCreatePaymentHandler = ({
           status: 'pending',
           createdAt: new Date(),
         };
+        if (paymentData.amount === 0) {
+          onError('Payment Amount can not be zero!');
+          return;
+        }
         if (currentUser.uid !== appointment.doctorId) {
           onError('Only doctor can create payment record');
           return;

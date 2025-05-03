@@ -29,7 +29,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isEditing, amount, onAmount
               placeholder="0.00"
               value={amount}
               onChange={(e) => onAmountChange(Number(e.target.value))}
-              min={0}
+              min={1}
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 sm:text-sm">
               USD
